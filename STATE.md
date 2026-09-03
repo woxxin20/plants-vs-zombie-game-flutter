@@ -4,15 +4,15 @@
      Humans edit HUMAN NOTES only. Rules: .ai/STATE-PROTOCOL.md -->
 
 CYCLE:   2 (open)
-UPDATED: 2026-09-03T18:05+05:30
+UPDATED: 2026-09-03T18:25+05:30
 BY:      agent
-BRANCH:  main
-COMMIT:  4b4c974
+BRANCH:  overnight/gnhf-prism-defense-20260903
+COMMIT:  ae7a5b6
 STATUS:  GREEN
 
 ## NEXT ACTION
-Run `git add -A && git commit` to preserve the recovered repurposing as a
-labeled WIP checkpoint before the overnight workflow begins.
+Run `powershell -ExecutionPolicy Bypass -File tool/run_overnight_gnhf.ps1` in
+the dedicated worktree to start the bounded Claude → Cursor → Codex workflow.
 
 ## PROJECT
 Type:    Flutter 3.47 + Flame 1.38 landscape game, offline, no backend
