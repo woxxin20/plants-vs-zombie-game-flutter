@@ -1,0 +1,7 @@
+[
+  {"id":"basic","hp":100,"speed":12,"eat":20},
+  {"id":"bucket","hp":250,"speed":12,"eat":20},
+  {"id":"jumper","hp":120,"speed":14,"eat":20},
+  {"id":"fog","hp":150,"speed":10,"eat":20},
+  {"id":"giant","hp":600,"speed":8,"eat":40}
+]

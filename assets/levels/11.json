@@ -1,0 +1,137 @@
+{
+  "id": 11,
+  "name": "Frostbite",
+  "flags": 2,
+  "startGlow": 75,
+  "parTime": 90.0,
+  "availableTools": [
+    "bulb",
+    "beam",
+    "wall",
+    "mirror",
+    "frost"
+  ],
+  "unlockReward": "frost",
+  "waves": [
+    {
+      "delay": 11.8,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "delay": 24.5,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 2
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "jumper",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "delay": 37.5,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 2
+        },
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "delay": 49.4,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 60.1,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "jumper",
+          "lane": 2
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 76.4,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "jumper",
+          "lane": 2
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        }
+      ]
+    }
+  ]
+}

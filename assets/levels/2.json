@@ -1,0 +1,51 @@
+{
+  "id": 2,
+  "name": "Steady Glow",
+  "flags": 1,
+  "startGlow": 50,
+  "parTime": 45.0,
+  "availableTools": [
+    "bulb",
+    "beam",
+    "wall"
+  ],
+  "unlockReward": null,
+  "waves": [
+    {
+      "delay": 12.0,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "delay": 25.6,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 37.5,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    }
+  ]
+}

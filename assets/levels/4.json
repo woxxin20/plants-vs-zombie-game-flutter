@@ -1,0 +1,61 @@
+{
+  "id": 4,
+  "name": "Shade Block",
+  "flags": 1,
+  "startGlow": 50,
+  "parTime": 60.0,
+  "availableTools": [
+    "bulb",
+    "beam",
+    "wall",
+    "frost"
+  ],
+  "unlockReward": null,
+  "waves": [
+    {
+      "delay": 13.2,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "delay": 26.1,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "delay": 38.1,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 51.8,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    }
+  ]
+}

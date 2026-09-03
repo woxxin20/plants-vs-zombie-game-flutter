@@ -1,0 +1,52 @@
+{
+  "id": 3,
+  "name": "Hold the Line",
+  "flags": 1,
+  "startGlow": 50,
+  "parTime": 60.0,
+  "availableTools": [
+    "bulb",
+    "beam",
+    "wall",
+    "frost"
+  ],
+  "unlockReward": null,
+  "waves": [
+    {
+      "delay": 13.4,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "delay": 24.3,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 36.1,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    }
+  ]
+}

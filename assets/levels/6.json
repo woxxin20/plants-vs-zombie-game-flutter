@@ -1,0 +1,107 @@
+{
+  "id": 6,
+  "name": "Two Fronts",
+  "flags": 2,
+  "startGlow": 50,
+  "parTime": 75.0,
+  "availableTools": [
+    "bulb",
+    "beam",
+    "wall",
+    "mirror"
+  ],
+  "unlockReward": null,
+  "waves": [
+    {
+      "delay": 12.8,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "delay": 26.5,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "delay": 38.6,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 52.1,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 72.0,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 0
+        }
+      ]
+    }
+  ]
+}

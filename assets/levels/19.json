@@ -1,0 +1,203 @@
+{
+  "id": 19,
+  "name": "Last Stand",
+  "flags": 3,
+  "startGlow": 75,
+  "parTime": 150.0,
+  "availableTools": [
+    "bulb",
+    "beam",
+    "wall",
+    "mirror",
+    "frost",
+    "prism",
+    "bomb",
+    "twin"
+  ],
+  "unlockReward": null,
+  "waves": [
+    {
+      "delay": 10.2,
+      "shadows": [
+        {
+          "id": "fog",
+          "lane": 0
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "giant",
+          "lane": 0
+        },
+        {
+          "id": "giant",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "delay": 21.1,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "fog",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "delay": 31.3,
+      "shadows": [
+        {
+          "id": "giant",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "delay": 45.2,
+      "shadows": [
+        {
+          "id": "jumper",
+          "lane": 2
+        },
+        {
+          "id": "jumper",
+          "lane": 2
+        },
+        {
+          "id": "giant",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "delay": 56.4,
+      "shadows": [
+        {
+          "id": "giant",
+          "lane": 0
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "fog",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 69.3,
+      "shadows": [
+        {
+          "id": "fog",
+          "lane": 0
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "fog",
+          "lane": 2
+        },
+        {
+          "id": "giant",
+          "lane": 1
+        },
+        {
+          "id": "fog",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 85.8,
+      "shadows": [
+        {
+          "id": "fog",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "fog",
+          "lane": 2
+        },
+        {
+          "id": "giant",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 103.4,
+      "shadows": [
+        {
+          "id": "jumper",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "giant",
+          "lane": 2
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "giant",
+          "lane": 2
+        }
+      ]
+    }
+  ]
+}

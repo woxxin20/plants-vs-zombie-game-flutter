@@ -1,0 +1,405 @@
+---
+document: Implementation Reality Audit
+authority: Evidence of current implementation, conformance, drift, defects, and release risk
+status: Active
+owner: "Solo developer (repo owner)"
+last_updated: "2026-09-03"
+---
+
+# Audit — LIGHT vs SHADOW: Prism Defense
+
+This file is the reality check. It records what the repository **actually
+proves**, compares that evidence with the intended product
+(`LIGHT_vs_SHADOW_Prism_Defense_Flame_Spec.md`), and creates traceable
+remediation. It is not softened to match optimistic status reports.
+
+**Important note on this audit's evidence base:** the brief for this audit
+stated no game code existed yet and that only `flutter pub get` and
+`flutter --version` had been run. While gathering evidence for this pass,
+this auditor found that is no longer accurate — see `AUD-008`. This audit
+records what was actually observed in the repository at the timestamp in
+§2, not the briefed assumption.
+
+## 1. Audit rules
+
+- Evidence is required. "Looks done" and "should work" are not evidence.
+- Runtime/tests describe current behavior; PRD/architecture/rules/design describe intended behavior.
+- A mismatch is a finding, not an automatic change to the specification.
+- Every finding has severity, evidence, owner, remediation task, and retest result.
+- Closed findings remain in the log; never delete audit history.
+- The implementer may collect evidence, but release-significant exceptions should be accepted by the accountable owner.
+- Audits are read-only inspections unless a separate task authorizes remediation. This audit ran two read-only commands (`flutter analyze`, `git status`/`git log`) beyond the briefed baseline to gather honest evidence; it made no code or dependency changes.
+
+## 2. Audit metadata
+
+- **Audit date:** 2026-09-03 (snapshot timestamp 2026-09-03T11:04Z)
+- **Auditor:** Claude Sonnet 5 (governance-doc agent)
+- **Repository/version:** `main` branch, no commit captures the current
+  working tree (see `AUD-009`) — last real commit is `4b4c974` ("Update
+  README.md"), which still reflects the pre-repurposing PvZ-widgets game.
+- **Environment:** Local dev, Windows 11, Flutter 3.47.0 stable (per
+  briefed `flutter --version` run).
+- **Scope:** Full baseline audit before feature work begins (governance
+  kit setup checklist item), per `docs/GOVERNANCE.md` §"Setup checklist".
+- **Mapped phase/release:** `PH-07` (governance bootstrap) closing out;
+  gate for `PH-00` start.
+- **Previous audit:** None — this is the first audit.
+- **Limitations:** No device/emulator run was performed (no `flutter run`,
+  no `flutter test`, no `flutter build`). No security/accessibility/
+  performance testing was performed — none of it applies yet since no
+  screen or gameplay code is wired into `main.dart` or verified to run.
+  This audit is evidence of repo/file/dependency state only.
+
+## 3. Result vocabulary
+
+Conformance result: `Pass`, `Partial`, `Fail`, `Not implemented`,
+`Not applicable`, `Not verified`.
+
+Finding severity: Critical, High, Medium, Low, Info (see full table in the
+template — unchanged from `docs/GOVERNANCE.md`).
+
+## 4. Executive reality summary
+
+| Area | Result | Evidence summary | Highest finding |
+| --- | --- | --- | --- |
+| Product/functional | Not verified | No `flutter run`/device test performed; partial component code exists but is unwired and untested | `AUD-007` (Medium) |
+| Architecture/data | Partial | `pubspec.yaml` resolves current majors correctly (`AUD-003` closed); persistence fork substitution documented (`AUD-001`) | `AUD-001` (Low) |
+| Rules/code quality | Fail | `flutter analyze` (run live this audit) reports 1 error, 1 warning, 1 info against the partial code that already exists | `AUD-008` (Medium) |
+| Design/accessibility | Not applicable | No screen renders yet; nothing to audit visually | None |
+| Security/privacy | Not applicable | Offline, no accounts, no PII, no network calls implemented yet | None |
+| Performance/reliability | Not verified | No build/profile run performed | None |
+| Tests/build/release | Fail | `test/` directory exists but contains zero test files; no build has been attempted | `AUD-007` (Medium) |
+| Documentation/traceability | Partial | This pass creates the first `PH-*`/`TASK-*`/`AUD-*` IDs; `docs/prd.md`, `architecture.md`, `rules.md`, `design.md` remain Draft templates | `AUD-002` cross-reference |
+
+**Overall decision:** `No-go` (for any release/feature-complete claim —
+expected and correct at this stage of a project that has no working game
+yet; this is not a release gate, it is the required baseline audit before
+feature work begins).
+
+**Decision basis:** No screen has ever been run on a device or emulator.
+`flutter analyze` fails with one real error in code that already exists
+uncommitted in the working tree. Zero automated tests exist. The entire
+repurposing effort — governance kit, rewritten `pubspec.yaml`, new game
+code, new level assets, and the deletion of the old game — has never been
+committed to git (`AUD-009`, High), which is the most consequential finding
+in this audit: a single `git reset --hard` or `git checkout -- .` right now
+would destroy all of it with no recovery path.
+
+## 5. Requirement conformance matrix
+
+`docs/prd.md` has no approved `PRD-FR-*` ids yet (still a Draft template),
+so this matrix uses the plausible topical ids from
+`docs/implementation_plan.md` §"ID reconciliation note" and records
+`Not verified` for all of them — no functional requirement has been
+exercised end to end yet.
+
+| Requirement | Acceptance/test | Implementation evidence | Result | Finding/task |
+| --- | --- | --- | --- | --- |
+| `PRD-FR-001` Placement/validation | Spec §17 7-check table | No `tryPlace` implementation found in `lib/` | Not implemented | `TASK-019` |
+| `PRD-FR-002` Glow economy | Spec §5 | `lib/data/rules.dart`, `lib/data/content.dart` exist (untested) — likely hold cost/cooldown constants, not verified to be wired | Not verified | `TASK-017`, `TASK-018` |
+| `PRD-FR-003` Beam optics | Spec §15 | `lib/data/optics.dart` (325 lines) exists — largest data file present, suggests trace-algorithm groundwork, but has no test and is not invoked from any component yet | Not verified | `TASK-025` |
+| `PRD-FR-004` Shadow AI | Spec §7 | `lib/game/components/shadow_component.dart` exists (untested, not reviewed for correctness in this pass — code review is out of this audit's scope) | Not verified | `TASK-023` |
+| `PRD-FR-005` Waves/50% rule | Spec §8 | No `wave_manager_component.dart` found | Not implemented | `TASK-030` |
+| `PRD-FR-006` Sweep | Spec §5 | Not found | Not implemented | `TASK-031` |
+| `PRD-FR-007` Win/lose | Spec §16 | Not found | Not implemented | `TASK-032` |
+| `PRD-FR-011` Persistence | Spec §19 | `lib/core/save_store.dart` exists (121 lines, untested); `hive_ce`/`hive_ce_flutter` resolved in `pubspec.yaml` | Not verified | `TASK-022` |
+| `PRD-FR-012` Lifecycle/pause | Spec §24 #10 | Not found in the 2 files searched (`main.dart` does not exist yet either — deleted with the old game, no replacement) | Not implemented | `TASK-007`, `TASK-032` |
+| All other `PRD-FR-*` (008-010, 013-015) | — | No evidence searched — out of scope for `PH-00`-`PH-02` | Not verified | See `implementation_plan.md` §4 |
+
+## 6. Journey audit
+
+No user journey has been run — there is no `main.dart` entry point in the
+current working tree (deleted with the old game; no Flame-based
+replacement committed or verified yet). `Not verified` for every row until
+`PH-00`'s exit gate (`docs/phases.md` §4) is met.
+
+| Journey | Scenario | Environment/data | Expected source | Actual evidence | Result |
+| --- | --- | --- | --- | --- | --- |
+| Boot | Cold start to empty `BattleWorld` at 60fps | Local emulator | Spec §25 Phase 0 | No `main.dart` exists; never run | Not verified |
+| Place-a-tool | Tap tile, place Bulb, see glow deduct | Local emulator | Spec §17 | No `tryPlace` exists | Not implemented |
+| Win level 1 | Full level clear | Local emulator | Spec §25 Phase 2 | No wave/beam/sweep logic exists | Not implemented |
+
+## 7. Architecture conformance
+
+| Check | Expected source | Evidence | Result | Finding |
+| --- | --- | --- | --- | --- |
+| Stack and major packages match accepted ADRs | Spec §21 vs `pubspec.yaml` | `pubspec.yaml` pins `flame ^1.34.0`, `flame_audio ^2.11.0`, `flame_riverpod ^5.4.0`, `flutter_riverpod ^2.6.1`, `go_router ^16.0.0`, `hive_ce ^2.11.0` + `hive_ce_flutter ^2.3.0`, `google_mobile_ads ^6.0.0`, `in_app_purchase ^3.2.0`; inline comments reference `ADR-001`..`ADR-005` that do not yet exist in `docs/architecture.md` | Partial | `AUD-001`, `AUD-003` |
+| Assets live at repo root, not inside `lib/` | Spec §21 shows `assets/` nested under `lib/` (wrong for Flutter) | `pubspec.yaml` `flutter.assets:` lists `assets/data/`, `assets/levels/`, `assets/audio/` at repo root; confirmed present on disk | Pass (already correctly diverged from the spec's own structural error) | `AUD-004` (Info, closed) |
+| `uses-material-design: false` enforced | Spec "WHY FLAME" — zero Material3/Cupertino | `pubspec.yaml` line 39 sets it `false` with an explanatory `RULE-UI` comment | Pass | None |
+| Repository/modules match documented ownership | Spec §21 `lib/` tree | Partial match: `lib/core/{layout,save_store,tokens}.dart`, `lib/data/{content,models,optics,rules}.dart`, `lib/game/light_vs_shadow_game.dart`, `lib/game/components/{backdrop_layers,grid_component,shadow_component}.dart`, `lib/game/components/tools/tool_component.dart` exist; no `lib/main.dart`, no `lib/core/{theme,router,hive,audio}.dart`, no `lib/game/worlds/*`, no `lib/state/*` yet | Partial | `AUD-008` |
+
+## 8. Rule and dependency audit
+
+`docs/rules.md` is still a Draft template with no accepted `RULE-*` ids, so
+this section records evidence against the spec's own stated rules
+(no-Material, offline-only) instead of a `RULE-*` id.
+
+| Rule/check | Evidence | Result | Finding |
+| --- | --- | --- | --- |
+| Zero Material/Cupertino widgets | `uses-material-design: false` in `pubspec.yaml`; `flutter analyze` run this audit shows no Material-related errors (too little code exists to fully evaluate) | Not verified (insufficient code surface) | None yet |
+| No runtime font fetching (offline-first) | `pubspec.yaml` correctly omits `google_fonts` as a dependency; but no bundled-font replacement exists — no `assets/fonts/`, no `fonts:` section | Fail (mandate not violated, but also not fulfilled — no font solution exists at all) | `AUD-002` |
+| Quality command passes (`flutter analyze`) | Run live this audit: `flutter analyze` → 1 error (`undefined_identifier 'Curves'` in `lib/game/components/tools/tool_component.dart:62`), 1 warning (`must_call_super` in `lib/game/light_vs_shadow_game.dart:30`), 1 info (`unnecessary_import` in `lib/game/light_vs_shadow_game.dart:8`) | Fail | `AUD-008` |
+| Dependency policy — no discontinued packages | Spec pins `hive_flutter` (discontinued); `pubspec.yaml` uses `hive_ce`/`hive_ce_flutter` (maintained fork) instead | Pass (deliberate, documented substitution) | `AUD-001` (Low, accepted) |
+
+## 9. Design and accessibility audit
+
+Not applicable this pass — no screen has been implemented or run, so there
+is nothing to visually or accessibility-audit yet. `docs/design.md` is
+also still a Draft template with no accepted `DS-*` tokens. Re-run this
+section at the `PH-00`/`PH-01` gate review once `TopBarComponent` and one
+real screen render.
+
+## 10. Security and privacy audit
+
+Not applicable this pass. The product is offline-first with no accounts,
+no PII collection, and no network calls implemented (ads/IAP are deferred
+to `PH-05`, `TASK-040`/`TASK-041`). Re-run once `google_mobile_ads`/
+`in_app_purchase` are actually wired, since those introduce a network/SDK
+surface that does need review.
+
+## 11. Performance, reliability, and operations audit
+
+Not verified — no build, profile, or device run has been performed. This
+section becomes meaningful starting at `PH-00`'s exit gate (empty-scene
+60fps baseline, `docs/phases.md` §4).
+
+## 12. Test and build evidence
+
+| Date | Check/command | Scope/environment | Result | Duration/notes | Finding |
+| --- | --- | --- | --- | --- | --- |
+| 2026-09-03 | `flutter --version` | Local Windows | Pass — 3.47.0 stable | Briefed baseline, not re-run this pass | None |
+| 2026-09-03 | `flutter pub get` | Local Windows, rewritten `pubspec.yaml` | Pass — resolved `flame 1.38.2`, `flame_audio 2.12.2`, `flame_riverpod 5.4.21`, `flutter_riverpod 2.6.1`, `go_router 16.3.0`, `hive_ce_flutter 2.3.4`, `google_mobile_ads 6.0.0`, `in_app_purchase 3.3.0` (per brief) | Briefed baseline, not re-run this pass | None |
+| 2026-09-03T11:04Z | `flutter analyze` | Local Windows, current `lib/` (partial, uncommitted code) | Fail — 1 error, 1 warning, 1 info (see §8) | Run live during this audit, ~15s | `AUD-008` |
+| 2026-09-03 | `find test -type f` | Repo root | 0 files | `test/` directory exists but is empty | `AUD-007` |
+| 2026-09-03 | `flutter test` | — | Not run | No test files exist to run | `AUD-007` |
+| 2026-09-03 | `flutter build apk` / `flutter build appbundle` | — | Not run | Far too early — no `main.dart` exists | N/A, tracked at `PH-06` |
+
+## 13. Documentation and traceability drift
+
+| Drift | Authority | Current reality | Corrective action | Task/finding |
+| --- | --- | --- | --- | --- |
+| Audit brief said "no game code exists yet"; repository contains 12 partial `lib/` files and full level/tool/shadow JSON content, all uncommitted | This audit's own brief vs `git status`/`find` evidence | See `AUD-008` | Reconcile `docs/implementation_plan.md` task statuses at the next working session against actual file contents (do not mark `Done` from file presence alone — acceptance criteria are still unmet) | `AUD-008` |
+| `pubspec.yaml` inline comments reference `ADR-001`..`ADR-005` | `docs/architecture.md` | `architecture.md` is still a Draft template with no accepted ADR content | Author `docs/architecture.md` and formalize `ADR-001`..`ADR-005` to match what `pubspec.yaml` already assumes | `AUD-001`, `AUD-003` |
+| None of the repurposing work (governance kit + code + assets + deletions) is committed | `docs/GOVERNANCE.md` change-propagation protocol implies durable, committed state | `git status` shows 94 changed/untracked paths, zero of which are staged or committed since `4b4c974` | Commit the governance kit and the current `lib/`/`assets/` state as a checkpoint before any further code work, so a `git reset --hard` cannot destroy it | `AUD-009` |
+
+Required checks:
+
+- Every active task links to a valid source ID — met in `implementation_plan.md` (plausible ids pending PRD/architecture/rules/design authorship, explicitly flagged there).
+- Every MVP requirement is assigned to a phase/task/test — met for `PH-00`-`PH-02`'s in-scope requirements; coarse for `PH-03`-`PH-06`.
+- No duplicate/conflicting truths exist across docs — checked, none found this pass.
+- `memory.md` matches actual task/finding state — see `docs/memory.md`, written to match this audit.
+- Deprecated IDs link to replacements — N/A, no IDs deprecated yet.
+- Required placeholders do not remain in the active scope — `phases.md`, `implementation_plan.md`, `audit.md`, `memory.md` placeholders resolved this pass; `prd.md`, `architecture.md`, `rules.md`, `design.md` still carry `[REQUIRED: ...]` placeholders (tracked, not this audit's scope to fill).
+
+## 14. Finding template and register
+
+### `AUD-001` — `hive_flutter` (spec-pinned) replaced with `hive_ce_flutter` (maintained fork)
+
+- **Status:** Accepted risk
+- **Severity:** Low
+- **Detected:** 2026-09-03, baseline audit
+- **Source breached:** Spec §21 (`hive_flutter: ^1.1`)
+- **Affected users/data/components:** Persistence layer (`lib/core/save_store.dart`, future `lib/core/hive.dart`).
+- **Evidence:** `pubspec.yaml` lines 22-24: `hive_ce: ^2.11.0`, `hive_ce_flutter: ^2.3.0`, comment `# Offline persistence (ADR-004)`.
+- **Reproduction:** 1. Open `pubspec.yaml`. 2. Compare dependency name against spec §21. 3. `hive_flutter`/`hive` is absent; `hive_ce`/`hive_ce_flutter` present instead.
+- **Expected:** Spec §21 names `hive_flutter: ^1.1`.
+- **Impact:** `hive` and `hive_flutter` are publicly discontinued (no longer maintained by the original author); using them would be a supply-chain risk. `hive_ce_flutter` is the community-maintained fork with an equivalent API.
+- **Likely cause:** Deliberate substitution during `PH-07` pubspec rewrite.
+- **Remediation task:** None required in code; formalize as `ADR-004` in `docs/architecture.md` when authored.
+- **Owner/due:** Solo developer, when `architecture.md` is next authored.
+- **Workaround:** N/A — current dependency is the correct choice.
+- **Retest evidence:** N/A — accepted as-is.
+- **Closure/acceptance owner:** Solo developer, 2026-09-03.
+
+### `AUD-002` — GoogleFonts runtime-fetch mandate conflicts with offline-first product; no bundled-font replacement exists yet
+
+- **Status:** Open
+- **Severity:** Medium
+- **Detected:** 2026-09-03, baseline audit
+- **Source breached:** Spec §10.2 (Orbitron/Inter/JetBrainsMono via `google_fonts`), spec §26 code snippet uses `GoogleFonts.orbitron()`.
+- **Affected users/data/components:** All text rendering (`lib/core/theme.dart`, not yet created; `lib/core/tokens.dart` exists, 208 lines, not reviewed for font references in this pass).
+- **Evidence:** `pubspec.yaml` correctly does **not** list `google_fonts` as a dependency (offline-first requires no runtime font download); no `assets/fonts/` directory exists; no `fonts:` section exists in `pubspec.yaml`.
+- **Reproduction:** 1. `grep google_fonts pubspec.yaml` → no match. 2. `ls assets/fonts` → does not exist. 3. `grep "fonts:" pubspec.yaml` → no match.
+- **Expected:** Spec §10.2 requires Orbitron/Inter/JetBrainsMono; product must be offline-first per project directive, which forbids `GoogleFonts.orbitron()`-style runtime network fetch.
+- **Impact:** Currently no typography solution exists at all — every `TextComponent`/`TextPaint` will fall back to a system default font until this is resolved, which is a visible art-direction failure per spec §4/§10.
+- **Likely cause:** Correctly identified as a conflict during `PH-07` planning, but not yet resolved with a bundled-font alternative (licensing/sourcing not done).
+- **Remediation task:** `TASK-011`
+- **Owner/due:** Solo developer, before `PH-00` exit gate.
+- **Workaround:** None safe — ship with system default font only as a last resort, and record that as a new accepted-risk finding if `TASK-011` cannot close in time.
+- **Retest evidence:** Pending.
+- **Closure/acceptance owner:** Pending.
+
+### `AUD-003` — Spec-pinned dependency majors incompatible with Dart 3.11; current majors resolved instead
+
+- **Status:** Accepted risk
+- **Severity:** Low
+- **Detected:** 2026-09-03, baseline audit
+- **Source breached:** Spec §21 (`flame: ^1.18`, `go_router: ^12`, `google_fonts: ^6.1`, etc.)
+- **Affected users/data/components:** Every `lib/` file that imports Flame/go_router APIs — spec code snippets (e.g. §26, §14) may not compile verbatim against the resolved current majors.
+- **Evidence:** `pubspec.yaml` pins `flame: ^1.34.0`, `go_router: ^16.0.0` (resolved to `flame 1.38.2`, `go_router 16.3.0` per `flutter pub get`); `environment.sdk: '>=3.11.1 <4.0.0'`.
+- **Reproduction:** Compare `pubspec.yaml` versions against spec §21 table.
+- **Expected:** Spec §21's pinned versions.
+- **Impact:** Spec code snippets must be treated as illustrative, not copy-paste-correct, against the actually resolved API surface. Already noted in `docs/implementation_plan.md` §8 dependency plan.
+- **Likely cause:** Spec was authored before current Flame/go_router majors existed; project correctly resolved against current Dart SDK instead of blindly pinning the spec's versions.
+- **Remediation task:** None required — resolved versions are correct; formalize as `ADR-001`/`ADR-002`/`ADR-003`/`ADR-005` when `architecture.md` is authored.
+- **Owner/due:** Solo developer, when `architecture.md` is next authored.
+- **Workaround:** N/A.
+- **Retest evidence:** N/A — accepted as-is.
+- **Closure/acceptance owner:** Solo developer, 2026-09-03.
+
+### `AUD-004` — Spec §21 shows `assets/` nested inside `lib/`; correctly implemented at repo root instead
+
+- **Status:** Closed
+- **Severity:** Info
+- **Detected:** 2026-09-03, baseline audit
+- **Source breached:** Spec §21 `lib/` tree diagram shows `assets/levels/`, `assets/tools.json`, etc. nested under `lib/`.
+- **Affected users/data/components:** Asset loading (`lib/data/levels_loader.dart`, not yet created).
+- **Evidence:** `pubspec.yaml` `flutter.assets:` correctly lists `assets/data/`, `assets/levels/`, `assets/audio/` at repo root; `find assets -type f` confirms files exist there, not under `lib/`.
+- **Reproduction:** Compare spec §21 tree against `pubspec.yaml`/`find assets`.
+- **Expected:** Flutter requires assets declared relative to the project root, not inside `lib/` — the spec's own diagram is structurally wrong for Flutter.
+- **Impact:** None — implementation is already correct; recorded so the divergence isn't mistaken for an unreviewed defect later.
+- **Likely cause:** Spec authoring error, correctly not followed literally.
+- **Remediation task:** None.
+- **Owner/due:** N/A.
+- **Workaround:** N/A.
+- **Retest evidence:** Confirmed correct 2026-09-03.
+- **Closure/acceptance owner:** Solo developer, 2026-09-03.
+
+### `AUD-005` — Native app id / bundle id / display name still reference `plants_vs_zombie`
+
+- **Status:** Open
+- **Severity:** Medium
+- **Detected:** 2026-09-03, baseline audit
+- **Source breached:** Project directive (repurposing to `prism_defense`); no store listing can ship under the old identity.
+- **Affected users/data/components:** `android/app/build.gradle.kts`, `android/app/src/main/AndroidManifest.xml`, `ios/Runner.xcodeproj/project.pbxproj`.
+- **Evidence:** `grep namespace android/app/build.gradle.kts` → `namespace = "com.example.plants_vs_zombie"`; `applicationId = "com.example.plants_vs_zombie"`; `android:label="plants_vs_zombie"` in `AndroidManifest.xml`; `PRODUCT_BUNDLE_IDENTIFIER = com.example.plantsVsZombie` (×3 build configs) in `project.pbxproj`.
+- **Reproduction:** `grep -ri "plants_vs_zombie\|plantsvszombie" android/app/build.gradle.kts ios/Runner.xcodeproj/project.pbxproj`.
+- **Expected:** App id/bundle id/display name should reflect `prism_defense`/"LIGHT vs SHADOW".
+- **Impact:** Blocks any store submission and is a visible identity mismatch (device home-screen label still says "plants_vs_zombie") even for internal test builds.
+- **Likely cause:** Not yet addressed during `PH-07`; correctly out of scope for docs-only work.
+- **Remediation task:** `TASK-012`
+- **Owner/due:** Solo developer, before `PH-00` exit gate.
+- **Workaround:** None needed for local dev; only blocks store-facing builds.
+- **Retest evidence:** Pending.
+- **Closure/acceptance owner:** Pending.
+
+### `AUD-006` — No AdMob ad unit ids and no IAP product ids exist yet
+
+- **Status:** Open
+- **Severity:** Low (not yet blocking — monetization is `PH-05` scope)
+- **Detected:** 2026-09-03, baseline audit
+- **Source breached:** Spec §20 (Monetization).
+- **Affected users/data/components:** Future `lib/core/ads.dart`, `lib/core/iap.dart` (not yet created).
+- **Evidence:** No AdMob console references, no `remove_ads` product id, found anywhere in the repo (`grep -ri "ca-app-pub\|remove_ads" .` — not run broadly this pass since no ad/IAP code exists to search yet; absence confirmed by `PH-05` file paths in `implementation_plan.md` being unstarted).
+- **Reproduction:** N/A — nothing to reproduce, this is an absence finding.
+- **Expected:** Real (non-test) AdMob ad unit ids and a registered `remove_ads` IAP product id, per spec §20.
+- **Impact:** Blocks `PH-05` exit gate only; no impact on `PH-00`-`PH-04` work.
+- **Likely cause:** Correctly deferred — monetization is late-stage scope.
+- **Remediation task:** `TASK-040`, `TASK-041`
+- **Owner/due:** Solo developer, before `PH-05` exit gate.
+- **Workaround:** Use Google's published test ad unit ids during development; never ship them.
+- **Retest evidence:** Pending.
+- **Closure/acceptance owner:** Pending.
+
+### `AUD-007` — No automated tests exist
+
+- **Status:** Open
+- **Severity:** Medium
+- **Detected:** 2026-09-03, baseline audit
+- **Source breached:** `docs/GOVERNANCE.md` traceability chain (code + tests required before audit closure); every acceptance criterion in `docs/implementation_plan.md` names a `flutter test` command.
+- **Affected users/data/components:** Entire project — no regression safety net exists.
+- **Evidence:** `test/` directory exists (survived from the old scaffold) but contains 0 files (`find test -type f` → empty). `flutter test` was not run because there is nothing to run.
+- **Reproduction:** `find test -type f`.
+- **Expected:** At minimum, a widget test proving `GameWidget` boots (per `TASK-009`'s acceptance criterion).
+- **Impact:** No task in `implementation_plan.md` can honestly reach `Verified` status until this is addressed — every acceptance criterion requires a test that does not yet exist.
+- **Likely cause:** No feature code has reached a testable milestone yet.
+- **Remediation task:** `TASK-009` (first test), then every subsequent task per `implementation_plan.md` §4.
+- **Owner/due:** Solo developer, ongoing from `PH-00` onward.
+- **Workaround:** None — this blocks claiming any task `Verified`.
+- **Retest evidence:** Pending.
+- **Closure/acceptance owner:** Pending (this finding stays open across the whole project, effectively tracked via `TASK-*` completion rather than a single close date).
+
+### `AUD-008` — Partial, uncommitted game code and content already exist, contradicting this audit's own briefed baseline; `flutter analyze` fails
+
+- **Status:** Open
+- **Severity:** Medium
+- **Detected:** 2026-09-03T11:04Z, baseline audit
+- **Source breached:** This audit's brief stated "NO game code exists yet" and "the only commands actually run so far were `flutter pub get` and `flutter --version`." Neither is accurate as of this snapshot.
+- **Affected users/data/components:** `lib/core/{layout,save_store,tokens}.dart`; `lib/data/{content,models,optics,rules}.dart`; `lib/game/light_vs_shadow_game.dart`; `lib/game/components/{backdrop_layers,grid_component,shadow_component}.dart`; `lib/game/components/tools/tool_component.dart`; `assets/data/{tools,shadows}.json`; `assets/levels/1.json`..`20.json`.
+- **Evidence:** `find lib assets -type f` lists the 12 `.dart` files and 22 JSON/asset files above, all shown as `??` (untracked) by `git status`. `flutter analyze`, run live during this audit, reports: `error - Undefined name 'Curves' ... lib\game\components\tools\tool_component.dart:62:18`; `warning - ... must_call_super ... lib\game\light_vs_shadow_game.dart:30:16`; `info - unnecessary_import ... lib\game\light_vs_shadow_game.dart:8:8`.
+- **Reproduction:** 1. `find lib assets -type f`. 2. `git status --porcelain -- lib assets`. 3. `flutter analyze`.
+- **Expected:** Either the briefed "no code yet" baseline was accurate (it was not), or this code should already be tracked in `implementation_plan.md` task statuses (it is not, since this plan was written to assume an empty `lib/`).
+- **Impact:** `docs/implementation_plan.md`'s `PH-00`-`PH-02` task statuses (`Not started`) may understate actual progress on file creation, but the `flutter analyze` failure proves that progress is not yet `Verified`-quality. This is most consistent with a concurrent process (another agent or session) actively generating code in this same working tree while this audit ran — file listings changed between two `find` calls taken minutes apart during this session.
+- **Likely cause:** Concurrent/parallel work on the same repository outside this docs-only agent's visibility.
+- **Remediation task:** Reconcile `implementation_plan.md` `TASK-007`..`TASK-032` statuses against actual file contents at the next working session (do not mark `Done` from file presence alone); fix the `Curves` import in `tool_component.dart` (likely missing `import 'package:flutter/animation.dart';` or `package:flame/effects.dart`) as part of whichever task now owns that file.
+- **Owner/due:** Solo developer, immediately (before starting new `PH-00` work, to avoid duplicating or conflicting with whatever produced these files).
+- **Workaround:** None — `flutter analyze` genuinely fails right now.
+- **Retest evidence:** Pending.
+- **Closure/acceptance owner:** Pending.
+
+### `AUD-009` — Entire repurposing work is uncommitted; no recovery point exists if the working tree is lost
+
+- **Status:** Open
+- **Severity:** High
+- **Detected:** 2026-09-03, baseline audit
+- **Source breached:** `docs/GOVERNANCE.md` change-propagation protocol assumes durable, committed state; general engineering practice against unrecoverable single-copy work.
+- **Affected users/data/components:** Entire repository — governance kit (`docs/`, `AGENTS.md`, `AGENT.md`, `CLAUDE.md`, `STATE.md`, `.ai/`, `.claude/`), rewritten `pubspec.yaml`/`pubspec.lock`, all new `lib/`/`assets/data/`/`assets/levels/` content, and the deletion of the old game's `lib/`/`assets/images/`/`assets/sounds/`/`test/widget_test.dart`.
+- **Affected users/data/components:** All of the above.
+- **Evidence:** `git status --porcelain` returns 94 changed paths; `git log --oneline -1` shows `4b4c974 Update README.md` as the last commit, which predates every repurposing change (governance kit, pubspec rewrite, new code/assets, deletions) — none of it is staged or committed.
+- **Reproduction:** 1. `git log --oneline -1` → `4b4c974`. 2. `git status --porcelain` → 94 lines, all either `?? ` (untracked new) or ` D`/` M` (unstaged delete/modify). 3. `git diff --stat` against `4b4c974` would show the old game as still "present" in the last commit.
+- **Expected:** Per `docs/GOVERNANCE.md`'s change-propagation protocol, material changes should be committed alongside their documentation so the repository has a durable, recoverable state at each step.
+- **Impact:** A `git checkout -- .`, `git reset --hard`, disk failure, or accidental `git clean -fd` right now would silently restore the old plants-vs-zombies game and permanently destroy the governance kit, the rewritten `pubspec.yaml`, and all new game code/assets/levels — with no commit to recover from. This is the highest-severity finding in this audit.
+- **Likely cause:** No commit has been made since the repurposing began; work has proceeded directly in the working tree.
+- **Remediation task:** Commit the current working tree (governance kit + `pubspec.yaml`/`pubspec.lock` + all new `lib/`/`assets/` content + the old-file deletions) as a single checkpoint before any further code work proceeds. Not assigned a `TASK-*` id in `implementation_plan.md` because it is a repository-hygiene action, not a product task — flagged here and in `docs/memory.md` as the most urgent next action instead.
+- **Owner/due:** Solo developer, immediately — before the next code-writing session of any kind.
+- **Workaround:** None — the exposure exists until a commit is made.
+- **Retest evidence:** Pending.
+- **Closure/acceptance owner:** Pending.
+
+### `AUD-010` — Old Plants-vs-Zombies game removed from the working tree; recoverable only via git history
+
+- **Status:** Accepted risk
+- **Severity:** Info
+- **Detected:** 2026-09-03, baseline audit
+- **Source breached:** N/A — intentional, directed repurposing.
+- **Affected users/data/components:** `lib/Constant/`, `lib/Models/`, `lib/Screens/`, `lib/Utils/`, `lib/Widgets/`, `lib/main.dart`, `lib/routes.dart`, `assets/images/*`, `assets/sounds/*`, `test/widget_test.dart`.
+- **Evidence:** `git status --porcelain -- lib assets` shows all of the above as ` D` (deleted, unstaged); `git log --oneline -- lib` shows the commits that created them (`9d740a2` through `7b8905a`) still exist in history.
+- **Reproduction:** `git log --oneline -- lib`; `git show 7b8905a:lib/main.dart` would recover the old entry point.
+- **Expected:** Deliberate repurposing per the project directive — this is expected, not a defect.
+- **Impact:** None if `AUD-009` is remediated (commit made) before the old commit's tree is garbage-collected or the local clone is lost; compounds with `AUD-009` until then.
+- **Likely cause:** Intentional deletion during `PH-07`.
+- **Remediation task:** None beyond `AUD-009`'s commit action, which also protects this recovery path by making the deletion itself durable and reviewable in history.
+- **Owner/due:** N/A.
+- **Workaround:** N/A.
+- **Retest evidence:** N/A.
+- **Closure/acceptance owner:** Solo developer, 2026-09-03 (accepted as intentional).
+
+### Finding register
+
+| Finding | Severity | Status | Source | Remediation | Owner/due | Retest |
+| --- | --- | --- | --- | --- | --- | --- |
+| `AUD-001` | Low | Accepted risk | Spec §21 | None (formalize `ADR-004` later) | Solo dev / architecture.md authoring | N/A |
+| `AUD-002` | Medium | Open | Spec §10.2 | `TASK-011` | Solo dev / before `PH-00` exit | Pending |
+| `AUD-003` | Low | Accepted risk | Spec §21 | None (formalize ADRs later) | Solo dev / architecture.md authoring | N/A |
+| `AUD-004` | Info | Closed | Spec §21 | None | N/A | Confirmed correct |
+| `AUD-005` | Medium | Open | Project directive | `TASK-012` | Solo dev / before `PH-00` exit | Pending |
+| `AUD-006` | Low | Open | Spec §20 | `TASK-040`, `TASK-041` | Solo dev / before `PH-05` exit | Pending |
+| `AUD-007` | Medium | Open | `docs/GOVERNANCE.md` | `TASK-009` onward | Solo dev / ongoing | Pending |
+| `AUD-008` | Medium | Open | This audit's brief vs reality | Reconcile plan + fix `Curves` import | Solo dev / immediately | Pending |
+| `AUD-009` | High | Open | Engineering practice | Commit working tree checkpoint | Solo dev / immediately | Pending |
+| `AUD-010` | Info | Accepted risk | Project directive | None (covered by `AUD-009`) | Solo dev | N/A |
+
+## 15. Gate decision
+
+- **Decision:** `No-go` (expected — this is the pre-feature-work baseline audit, not a release gate).
+- **Scope of decision:** `PH-07` closeout / readiness to begin `PH-00`.
+- **Blocking findings:** `AUD-009` (High — commit the working tree before any further code work, to avoid catastrophic loss) is the only finding that should block starting *new* work; `AUD-002`, `AUD-005`, `AUD-007`, `AUD-008` block `PH-00`'s own exit gate but not the decision to begin `PH-00`.
+- **Accepted risks:** `AUD-001`, `AUD-003`, `AUD-010` — all Low/Info, deliberate and documented substitutions.
+- **Required follow-up:** Commit the working tree (`AUD-009`), then proceed with `TASK-007` onward per `docs/implementation_plan.md`, closing `AUD-002`/`AUD-005`/`AUD-007`/`AUD-008` as part of `PH-00`'s own exit gate.
+- **Decision owner/date:** Solo developer (repo owner), 2026-09-03.
+
+## 16. Audit history
+
+| Date | Scope/version | Decision | Open C/H/M/L | Auditor | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 2026-09-03 | Baseline (pre-`PH-00`) | No-go | 0/1/4/2 | Claude Sonnet 5 | First audit. Found the working tree already contains partial, uncommitted, unverified game code beyond what this audit was briefed to expect — see `AUD-008`. Most urgent finding is `AUD-009` (uncommitted work, High). |

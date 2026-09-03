@@ -1,0 +1,223 @@
+{
+  "id": 20,
+  "name": "Total Eclipse",
+  "flags": 3,
+  "startGlow": 75,
+  "parTime": 150.0,
+  "availableTools": [
+    "bulb",
+    "beam",
+    "wall",
+    "mirror",
+    "frost",
+    "prism",
+    "bomb",
+    "twin"
+  ],
+  "unlockReward": null,
+  "waves": [
+    {
+      "delay": 10.0,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "fog",
+          "lane": 0
+        },
+        {
+          "id": "fog",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "jumper",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "delay": 21.1,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "fog",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "delay": 31.7,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        },
+        {
+          "id": "giant",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "delay": 45.0,
+      "shadows": [
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "jumper",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "delay": 55.7,
+      "shadows": [
+        {
+          "id": "jumper",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "fog",
+          "lane": 1
+        },
+        {
+          "id": "giant",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 68.2,
+      "shadows": [
+        {
+          "id": "giant",
+          "lane": 0
+        },
+        {
+          "id": "fog",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "jumper",
+          "lane": 0
+        },
+        {
+          "id": "fog",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 87.8,
+      "shadows": [
+        {
+          "id": "giant",
+          "lane": 0
+        },
+        {
+          "id": "fog",
+          "lane": 1
+        },
+        {
+          "id": "giant",
+          "lane": 2
+        },
+        {
+          "id": "jumper",
+          "lane": 2
+        },
+        {
+          "id": "giant",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 105.9,
+      "shadows": [
+        {
+          "id": "giant",
+          "lane": 0
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "jumper",
+          "lane": 2
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        },
+        {
+          "id": "fog",
+          "lane": 0
+        }
+      ]
+    }
+  ]
+}

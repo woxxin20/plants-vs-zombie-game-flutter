@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_PROJECT_DIR/STATE.md\"; if [ -f \"$f\" ]; then echo '=== STATE.md ==='; cat \"$f\"; if grep -q '^CYCLE:.*(open)' \"$f\"; then echo ''; echo '!! ORPHANED CYCLE — the previous session did not close. Run reconciliation (.ai/STATE-PROTOCOL.md section 4) BEFORE any other work.'; fi; n=$(ls -1 \"$CLAUDE_PROJECT_DIR/.ai/inbox\" 2>/dev/null | grep -v gitkeep | wc -l); [ \"$n\" -gt 0 ] && echo \"!! $n unconsumed worker note(s) in .ai/inbox/\"; else echo 'NO STATE.md. Create one from .ai/STATE-PROTOCOL.md before this session ends.'; fi"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_PROJECT_DIR/STATE.md\"; [ -f \"$f\" ] || exit 0; grep -q '^CYCLE:.*(open)' \"$f\" && echo 'WARNING: cycle left OPEN. Next session will run reconciliation.' >&2; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}

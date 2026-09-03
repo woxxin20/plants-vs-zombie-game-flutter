@@ -1,0 +1,51 @@
+{
+  "id": 1,
+  "name": "First Light",
+  "flags": 1,
+  "startGlow": 50,
+  "parTime": 45.0,
+  "availableTools": [
+    "bulb",
+    "beam",
+    "wall"
+  ],
+  "unlockReward": null,
+  "waves": [
+    {
+      "delay": 12.0,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "delay": 22.8,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 34.3,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    }
+  ]
+}

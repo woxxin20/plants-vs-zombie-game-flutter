@@ -1,0 +1,10 @@
+[
+  {"id":"bulb","cost":50,"hp":100,"cooldown":5,"dmg":0},
+  {"id":"beam","cost":100,"hp":100,"cooldown":5,"dmg":20},
+  {"id":"mirror","cost":50,"hp":150,"cooldown":10,"dmg":0},
+  {"id":"prism","cost":150,"hp":100,"cooldown":15,"dmg":0},
+  {"id":"frost","cost":125,"hp":100,"cooldown":12,"dmg":15},
+  {"id":"wall","cost":50,"hp":400,"cooldown":8,"dmg":0},
+  {"id":"bomb","cost":150,"hp":0,"cooldown":25,"dmg":300},
+  {"id":"twin","cost":125,"hp":100,"cooldown":15,"dmg":0}
+]

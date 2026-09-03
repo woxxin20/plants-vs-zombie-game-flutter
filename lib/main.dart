@@ -1,25 +1,33 @@
-import 'package:flutter/material.dart';
+/// Entry point. Landscape lock, immersive sticky, Hive open, content preload,
+/// then the app shell. Root is `WidgetsApp` — never `MaterialApp` (ADR-006).
+library;
+
 import 'package:flutter/services.dart';
-import 'package:plants_vs_zombie/Screens/home_page.dart';
-import 'package:plants_vs_zombie/routes.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-void main() {
-  runApp(MyApp());
-  SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft]);
-  SystemChrome.setEnabledSystemUIOverlays([]);
-}
+import 'app.dart';
+import 'core/save_store.dart';
+import 'data/content.dart';
 
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Plants vs Zombie',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: HomePage(),
-      routes: Routes.routes,
-    );
-  }
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Color(0xFF0A0E1A),
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Color(0xFF141A2E),
+    ),
+  );
+
+  await SaveStore.open();
+  await Content.load();
+
+  runApp(const ProviderScope(child: PrismDefenseApp()));
 }

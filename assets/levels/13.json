@@ -1,0 +1,182 @@
+{
+  "id": 13,
+  "name": "Through the Fog",
+  "flags": 3,
+  "startGlow": 75,
+  "parTime": 110.0,
+  "availableTools": [
+    "bulb",
+    "beam",
+    "wall",
+    "mirror",
+    "frost",
+    "prism",
+    "bomb"
+  ],
+  "unlockReward": null,
+  "waves": [
+    {
+      "delay": 11.4,
+      "shadows": [
+        {
+          "id": "fog",
+          "lane": 1
+        },
+        {
+          "id": "fog",
+          "lane": 1
+        },
+        {
+          "id": "fog",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "delay": 22.1,
+      "shadows": [
+        {
+          "id": "fog",
+          "lane": 2
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "delay": 33.2,
+      "shadows": [
+        {
+          "id": "jumper",
+          "lane": 2
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "delay": 44.2,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "jumper",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "delay": 56.9,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 68.4,
+      "shadows": [
+        {
+          "id": "fog",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 86.5,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "jumper",
+          "lane": 2
+        },
+        {
+          "id": "fog",
+          "lane": 1
+        },
+        {
+          "id": "jumper",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 105.1,
+      "shadows": [
+        {
+          "id": "fog",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "fog",
+          "lane": 2
+        },
+        {
+          "id": "jumper",
+          "lane": 1
+        },
+        {
+          "id": "jumper",
+          "lane": 0
+        }
+      ]
+    }
+  ]
+}

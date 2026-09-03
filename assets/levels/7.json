@@ -1,0 +1,107 @@
+{
+  "id": 7,
+  "name": "Reflected",
+  "flags": 2,
+  "startGlow": 50,
+  "parTime": 75.0,
+  "availableTools": [
+    "bulb",
+    "beam",
+    "wall",
+    "mirror"
+  ],
+  "unlockReward": "mirror",
+  "waves": [
+    {
+      "delay": 12.6,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "delay": 25.5,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        }
+      ]
+    },
+    {
+      "delay": 36.3,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 48.7,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 68.5,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 0
+        }
+      ]
+    }
+  ]
+}

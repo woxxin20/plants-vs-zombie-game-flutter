@@ -1,0 +1,107 @@
+{
+  "id": 5,
+  "name": "Helm Shade",
+  "flags": 2,
+  "startGlow": 50,
+  "parTime": 75.0,
+  "availableTools": [
+    "bulb",
+    "beam",
+    "wall",
+    "mirror"
+  ],
+  "unlockReward": null,
+  "waves": [
+    {
+      "delay": 13.0,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "delay": 25.3,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "delay": 35.8,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 48.4,
+      "shadows": [
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "basic",
+          "lane": 1
+        },
+        {
+          "id": "basic",
+          "lane": 2
+        },
+        {
+          "id": "bucket",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 65.2,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 0
+        },
+        {
+          "id": "bucket",
+          "lane": 1
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        },
+        {
+          "id": "bucket",
+          "lane": 2
+        }
+      ]
+    }
+  ]
+}
