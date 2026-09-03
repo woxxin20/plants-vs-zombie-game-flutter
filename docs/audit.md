@@ -321,7 +321,7 @@ Required checks:
 
 ### `AUD-008` — Partial, uncommitted game code and content already exist, contradicting this audit's own briefed baseline; `flutter analyze` fails
 
-- **Status:** Open
+- **Status:** Closed
 - **Severity:** Medium
 - **Detected:** 2026-09-03T11:04Z, baseline audit
 - **Source breached:** This audit's brief stated "NO game code exists yet" and "the only commands actually run so far were `flutter pub get` and `flutter --version`." Neither is accurate as of this snapshot.
@@ -334,12 +334,12 @@ Required checks:
 - **Remediation task:** Reconcile `implementation_plan.md` `TASK-007`..`TASK-032` statuses against actual file contents at the next working session (do not mark `Done` from file presence alone); fix the `Curves` import in `tool_component.dart` (likely missing `import 'package:flutter/animation.dart';` or `package:flame/effects.dart`) as part of whichever task now owns that file.
 - **Owner/due:** Solo developer, immediately (before starting new `PH-00` work, to avoid duplicating or conflicting with whatever produced these files).
 - **Workaround:** None — `flutter analyze` genuinely fails right now.
-- **Retest evidence:** Pending.
-- **Closure/acceptance owner:** Pending.
+- **Retest evidence:** 2026-09-03T18:40+05:30 (c2) — `flutter analyze` no longer reports the `Curves` error in `tool_component.dart:62`, and `light_vs_shadow_game.dart`'s `must_call_super`/`unnecessary_import` are the only survivors from this finding's original evidence. The repo has since grown to 49 errors overall from newer code (`home_world.dart` etc.) — tracked separately as `AUD-011`/`AUD-012`, not a reopen of this finding.
+- **Closure/acceptance owner:** Solo developer, 2026-09-03 (c2) — original defect fixed, superseded by `AUD-011`/`AUD-012` for current state.
 
 ### `AUD-009` — Entire repurposing work is uncommitted; no recovery point exists if the working tree is lost
 
-- **Status:** Open
+- **Status:** Closed
 - **Severity:** High
 - **Detected:** 2026-09-03, baseline audit
 - **Source breached:** `docs/GOVERNANCE.md` change-propagation protocol assumes durable, committed state; general engineering practice against unrecoverable single-copy work.
@@ -353,8 +353,8 @@ Required checks:
 - **Remediation task:** Commit the current working tree (governance kit + `pubspec.yaml`/`pubspec.lock` + all new `lib/`/`assets/` content + the old-file deletions) as a single checkpoint before any further code work proceeds. Not assigned a `TASK-*` id in `implementation_plan.md` because it is a repository-hygiene action, not a product task — flagged here and in `docs/memory.md` as the most urgent next action instead.
 - **Owner/due:** Solo developer, immediately — before the next code-writing session of any kind.
 - **Workaround:** None — the exposure exists until a commit is made.
-- **Retest evidence:** Pending.
-- **Closure/acceptance owner:** Pending.
+- **Retest evidence:** `git log --oneline -5` shows commits `ae7a5b6`, `5d10870`, `3f8a660` on `overnight/gnhf-prism-defense-20260903`, all after `4b4c974`; `git status --short` returns clean at c2 session start (2026-09-03T18:31+05:30).
+- **Closure/acceptance owner:** Solo developer, 2026-09-03 (c1/c2) — working tree committed, no data-loss exposure remains.
 
 ### `AUD-010` — Old Plants-vs-Zombies game removed from the working tree; recoverable only via git history
 
@@ -374,6 +374,42 @@ Required checks:
 - **Retest evidence:** N/A.
 - **Closure/acceptance owner:** Solo developer, 2026-09-03 (accepted as intentional).
 
+### `AUD-011` — `lib/core/tokens.dart` builds `dart:ui.TextStyle` instead of `package:flutter/painting.dart`'s `TextStyle`, breaking every HUD/world screen that consumes `T.*`
+
+- **Status:** Open
+- **Severity:** Medium
+- **Detected:** 2026-09-03T18:45+05:30, c2 planning pass
+- **Source breached:** `lib/core/tokens.dart`'s own doc comment ("Deliberately imports `dart:ui` and `package:flutter/painting.dart` only") — the file only imports `dart:ui`, so `TextStyle` in the `T` class resolves to `dart:ui.TextStyle`, which is a different, more restrictive type than the `package:flutter/painting.dart` `TextStyle` that `Text`/`DefaultTextStyle` and every world widget expect.
+- **Affected users/data/components:** `lib/core/tokens.dart` (`class T`, method `_s`); consumers `lib/game/worlds/{home_world,loadout_world,map_world,settings_world,shop_world,world_widgets}.dart`.
+- **Evidence:** `flutter analyze` (2026-09-03T18:45+05:30) reports 49 errors; 44 of them are `argument_type_not_assignable`, `undefined_method` (`copyWith`), `const_initialized_with_non_constant_value`, and `const_with_non_const`, all inside the six files listed above, all pointing at a `T.*` style value. `dart:ui.TextStyle` has no `copyWith` and is not const-constructible the way callers expect, which matches every error signature exactly.
+- **Reproduction:** `flutter analyze` — see error list grouped by file; every group traces back to a `style: T.<name>` argument.
+- **Expected:** `T`'s static fields are `package:flutter/painting.dart` `TextStyle` instances so `Text(style: T.h1)`, `T.h1.copyWith(...)`, and const contexts all type-check.
+- **Impact:** Blocks the `STATE.md` goal "`flutter analyze` clean across `lib/`"; 6 of 7 world screens cannot compile.
+- **Likely cause:** Copy-paste of the `TextStyle` builder without importing `package:flutter/painting.dart` (or `package:flutter/widgets.dart`), so the analyzer picked the only `TextStyle` in scope (`dart:ui`'s).
+- **Remediation task:** Reconciles `TASK-008` (file is `lib/core/tokens.dart` in reality, not the planned `lib/core/theme.dart` — naming drift, no action needed beyond noting it here and in `implementation_plan.md`). Assigned to Cursor via `.ai/inbox/gnhf-assignment.md` (c2).
+- **Owner/due:** Cursor implementer, immediately (next slice).
+- **Workaround:** None — every affected screen fails to compile until fixed.
+- **Retest evidence:** Pending.
+- **Closure/acceptance owner:** Pending.
+
+### `AUD-012` — Remaining `flutter analyze` errors unrelated to `AUD-011`, deferred to a later planning pass
+
+- **Status:** Open
+- **Severity:** Low
+- **Detected:** 2026-09-03T18:45+05:30, c2 planning pass
+- **Source breached:** N/A — pre-existing incomplete work, not a regression.
+- **Affected users/data/components:** `lib/main.dart` (imports missing `lib/app.dart`, calls undefined `PrismDefenseApp`); `lib/game/components/hud/right_panel_component.dart` (`TapCallbacks`/`TapUpEvent` used without importing `package:flame/events.dart`); `lib/game/components/hud/tray_slot_component.dart` (unused `_costLabel` field, warning only); `lib/game/light_vs_shadow_game.dart` (`unnecessary_import`, `must_call_super`, both non-error).
+- **Evidence:** `flutter analyze` (2026-09-03T18:45+05:30) — 3 errors at `lib\main.dart:9:8`, `32:37` (x2); 2 errors at `lib\game\components\hud\right_panel_component.dart:155:51`, `212:16`; 2 non-error diagnostics elsewhere.
+- **Reproduction:** `flutter analyze` (same run as `AUD-011`).
+- **Expected:** `lib/app.dart` exists and defines `PrismDefenseApp` (a `WidgetsApp` shell wiring the worlds/router — `TASK-007`'s actual remaining scope); `right_panel_component.dart` imports `package:flame/events.dart` for `TapCallbacks`/`TapUpEvent`.
+- **Impact:** Blocks full `flutter analyze` clean and app boot even after `AUD-011` is fixed; out of scope for the c2 assignment, which targets only the highest-leverage single-file fix.
+- **Likely cause:** `TASK-007` (app shell) not yet started; a missing import in `right_panel_component.dart`.
+- **Remediation task:** Next planning slice after `AUD-011`/`TASK-008` lands — likely `TASK-007` (create `lib/app.dart`) followed by the `right_panel_component.dart` import fix.
+- **Owner/due:** Claude planner, next cycle.
+- **Workaround:** None needed — tracked for sequencing only.
+- **Retest evidence:** Pending.
+- **Closure/acceptance owner:** Pending.
+
 ### Finding register
 
 | Finding | Severity | Status | Source | Remediation | Owner/due | Retest |
@@ -385,17 +421,19 @@ Required checks:
 | `AUD-005` | Medium | Open | Project directive | `TASK-012` | Solo dev / before `PH-00` exit | Pending |
 | `AUD-006` | Low | Open | Spec §20 | `TASK-040`, `TASK-041` | Solo dev / before `PH-05` exit | Pending |
 | `AUD-007` | Medium | Open | `docs/GOVERNANCE.md` | `TASK-009` onward | Solo dev / ongoing | Pending |
-| `AUD-008` | Medium | Open | This audit's brief vs reality | Reconcile plan + fix `Curves` import | Solo dev / immediately | Pending |
-| `AUD-009` | High | Open | Engineering practice | Commit working tree checkpoint | Solo dev / immediately | Pending |
+| `AUD-008` | Medium | Closed | This audit's brief vs reality | Reconcile plan + fix `Curves` import | Solo dev | Confirmed fixed (c2) |
+| `AUD-009` | High | Closed | Engineering practice | Commit working tree checkpoint | Solo dev | Confirmed committed (c1/c2) |
 | `AUD-010` | Info | Accepted risk | Project directive | None (covered by `AUD-009`) | Solo dev | N/A |
+| `AUD-011` | Medium | Open | `lib/core/tokens.dart` vs its own doc comment | Assigned to Cursor, `TASK-008` | Cursor / immediately | Pending |
+| `AUD-012` | Low | Open | Incomplete `TASK-007`; missing import | Next planning slice, `TASK-007` | Claude planner / next cycle | Pending |
 
 ## 15. Gate decision
 
-- **Decision:** `No-go` (expected — this is the pre-feature-work baseline audit, not a release gate).
-- **Scope of decision:** `PH-07` closeout / readiness to begin `PH-00`.
-- **Blocking findings:** `AUD-009` (High — commit the working tree before any further code work, to avoid catastrophic loss) is the only finding that should block starting *new* work; `AUD-002`, `AUD-005`, `AUD-007`, `AUD-008` block `PH-00`'s own exit gate but not the decision to begin `PH-00`.
+- **Decision:** `No-go` (expected — `PH-00` exit gate is not yet met: `flutter analyze` is not clean).
+- **Scope of decision:** `PH-00` exit gate readiness.
+- **Blocking findings:** `AUD-011` (Medium — 44 of 49 current `flutter analyze` errors) is the task assigned this cycle; `AUD-012` (Low — remaining 5 errors, `lib/app.dart` missing + one import) is the next planning slice; `AUD-002`, `AUD-005`, `AUD-007` remain open and also block `PH-00`'s exit gate.
 - **Accepted risks:** `AUD-001`, `AUD-003`, `AUD-010` — all Low/Info, deliberate and documented substitutions.
-- **Required follow-up:** Commit the working tree (`AUD-009`), then proceed with `TASK-007` onward per `docs/implementation_plan.md`, closing `AUD-002`/`AUD-005`/`AUD-007`/`AUD-008` as part of `PH-00`'s own exit gate.
+- **Required follow-up:** Land `TASK-008` (`AUD-011`) via Cursor this cycle; next planning cycle assigns `TASK-007`/`AUD-012`; then close `AUD-002`/`AUD-005`/`AUD-007` before claiming the `PH-00` exit gate.
 - **Decision owner/date:** Solo developer (repo owner), 2026-09-03.
 
 ## 16. Audit history
@@ -403,3 +441,4 @@ Required checks:
 | Date | Scope/version | Decision | Open C/H/M/L | Auditor | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 2026-09-03 | Baseline (pre-`PH-00`) | No-go | 0/1/4/2 | Claude Sonnet 5 | First audit. Found the working tree already contains partial, uncommitted, unverified game code beyond what this audit was briefed to expect — see `AUD-008`. Most urgent finding is `AUD-009` (uncommitted work, High). |
+| 2026-09-03 (c2) | `PH-00` in progress | No-go | 0/0/2/1 | Claude Sonnet 5 (planner) | `AUD-008`/`AUD-009` closed (fixed/committed). `flutter analyze` now shows 49 errors from newer code — root-caused to one file (`AUD-011`, assigned this cycle) plus a small remainder (`AUD-012`, next cycle). |
