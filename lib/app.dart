@@ -76,7 +76,12 @@ class _PrismDefenseAppState extends State<PrismDefenseApp>
         builder: (context, state, child) => Stack(
           children: [
             RiverpodAwareGameWidget(game: _game, key: _gameKey),
-            child,
+            // go_router hands us a full-size Navigator here. Our route bodies
+            // are zero-size side-effects (`_WorldSwap`), but the Navigator
+            // itself still sits on top of the GameWidget and swallows every
+            // pointer event, so nothing in the Flame world is ever tappable.
+            // It must never take input.
+            IgnorePointer(child: child),
           ],
         ),
         routes: [
