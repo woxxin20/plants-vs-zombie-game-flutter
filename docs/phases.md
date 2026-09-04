@@ -42,7 +42,7 @@ Rules:
 | Phase | Outcome | Spec source | Depends on | Status | Exit review |
 | --- | --- | --- | --- | --- | --- |
 | `PH-07` | Repo repurposed from PvZ-widgets to Flame governance-kit + resolvable pubspec | Repo history, `docs/audit.md` AUD-001..AUD-008 | None | Complete | 2026-09-03, solo dev |
-| `PH-00` | `FlameGame`/`CameraComponent` bootstrap renders inside `WidgetsApp`, landscape-locked, empty-scene 60fps baseline | Spec §25 Phase 0, §26 | `PH-07` | Not started | [Owner/date] |
+| `PH-00` | `FlameGame`/`CameraComponent` bootstrap renders inside `WidgetsApp`, landscape-locked, empty-scene 60fps baseline | Spec §25 Phase 0, §26 | `PH-07` | In progress — 4/6 gate items met at `397ce19`; the 2 render/device items are unrun and `TASK-012` is blocked on `ARCH-Q-003` | 2026-09-04, Claude (lead) |
 | `PH-01` | Parallax backdrop + 21-tile grid + glow economy (bulb + falling orbs) + place/remove + Hive + HUD shell render | Spec §25 Phase 1, §4.2, §5, §13 | `PH-00` | Not started | [Owner/date] |
 | `PH-02` | Shadow walk/eat + beam trace (mirror/prism) + collisions + HP bars + sweep + win/lose overlays, one full level playable | Spec §25 Phase 2, §7, §8, §15, §16 | `PH-01` | Not started | [Owner/date] |
 | `PH-03` | All 20 levels JSON + Loadout pick-6-of-8 + Scout panel + cooldowns + every tool/shadow special behavior | Spec §25 Phase 3, §6, §7, §9 | `PH-02` | Not started | [Owner/date] |
@@ -123,22 +123,37 @@ skeleton and the orientation/lifecycle shell.
 
 ### Exit gate
 
-- [ ] `flutter analyze` returns zero errors/warnings against `lib/`.
-- [ ] `flutter test` passes a widget test that pumps `LightVsShadowApp` and
-      asserts a `GameWidget` is present with no `MaterialApp`/`Scaffold`
-      ancestor in the tree.
+- [x] `flutter analyze` returns zero errors/warnings against `lib/`.
+      Evidence: `No issues found!` at `397ce19`.
+- [x] `flutter test` passes a widget test that pumps the app shell and asserts
+      a game widget is present with no `MaterialApp`/`Scaffold` ancestor.
+      Evidence: `test/app_boot_test.dart`, 35/35 at `397ce19`. **Drift, now
+      corrected:** this gate was written against a class named
+      `LightVsShadowApp`; the shell that exists is `PrismDefenseApp`
+      (`lib/app.dart`), and the test asserts `WidgetsApp` plus `HomeWorld`
+      mounted on the shared game via `game.camera.world`.
 - [ ] App launches on an Android emulator or physical device locked to
       `landscapeLeft`/`landscapeRight` only (rotate device, no relayout —
-      observed manually, logged in `docs/audit.md`).
+      observed manually, logged in `docs/audit.md`). **Never run.**
 - [ ] Flame's built-in FPS counter component shows a sustained ≥60fps on the
       empty `BattleWorld` for 30s (`flutter run --profile`, observed).
-- [ ] `grep -r "MaterialApp\|Scaffold\|Icons\." lib/` returns no matches.
+      **Never run.**
+- [x] `grep -r "MaterialApp\|Scaffold\|Icons\." lib/` returns no matches.
+      Evidence: 3 hits at `397ce19`, all inside doc comments that *name* the
+      forbidden widgets in order to forbid them (`lib/app.dart:6`,
+      `lib/main.dart:2`, `lib/game/components/tools/tool_component.dart:4`).
+      Zero code matches. The gate's grep cannot tell comment from code; a
+      reviewer must.
 - [ ] Native app id / bundle id / display name no longer reference
-      `plants_vs_zombie` in `android/app/build.gradle` (or its Kotlin DSL
-      equivalent) and `ios/Runner.xcodeproj`.
+      `plants_vs_zombie` in `android/app/build.gradle.kts` and
+      `ios/Runner.xcodeproj`. **Still `com.example.plants_vs_zombie`
+      (Android, `build.gradle.kts:8,19`) and `com.example.plantsVsZombie`
+      (iOS)** — blocked on `ARCH-Q-003`, the human bundle-id decision
+      (`AUD-005`, `TASK-012`).
 
 **Mapped tasks:** `TASK-007`..`TASK-012`
-**Evidence:** [Filled at gate review — commands above + screenshots.]
+**Evidence:** 4 of 6 met at `397ce19`. The two unmet render/device items need a
+physical device or emulator; the sixth needs a human decision.
 
 ## 5. `PH-01` — Grid, glow economy, HUD shell
 
@@ -386,3 +401,4 @@ builds succeed; the full §24 QA checklist (all 20 edge cases) passes.
 | --- | --- | --- | --- | --- | --- |
 | 2026-09-03 | `PH-07` | Created, marked Complete | Governance kit deployed, repo repurposed to Flame stack, `flutter pub get` passing | `AUD-001`..`AUD-008`, `TASK-001`..`TASK-006` | Solo developer |
 | 2026-09-03 | `PH-00`..`PH-06` | Created from spec §25 Phase 0-6, all Not started | First fill of governance templates against `LIGHT_vs_SHADOW_Prism_Defense_Flame_Spec.md` | Spec §25, §24 | Solo developer |
+| 2026-09-04 | `PH-00` | Status Not started → In progress; 4 of 6 exit-gate items ticked with commit evidence; gate wording corrected from `LightVsShadowApp` to the shell that exists, `PrismDefenseApp` | Reconciling the gate against the tree after `TASK-007`/`TASK-008` landed — the status had never been updated and the gate named a class that was never written | `AUD-011`..`AUD-014`, `TASK-007`, `TASK-008`, commits `733fb55`/`397ce19` | Claude (lead) |

@@ -459,6 +459,7 @@ Required checks:
 | `AUD-012` | Low | Closed | Incomplete `TASK-007`; missing import | Import fix (`e8a179d`, Cursor); `lib/app.dart` shell + 2 lints (`adf7676`, `733fb55`, Claude) | Done | Confirmed: analyze clean, tests 35/35 (c5) |
 | `AUD-013` | Low | Closed | `const Vector2(...)` has no const constructor in `vector_math` | Mechanical const removal across 5 world files (`adf7676`) | Done | Confirmed: analyze 31 → 6 (c5) |
 | `AUD-014` | Medium | Closed | Flame `OpacityEffect` contract | `FadeableRender` mixin on the 4 hand-painted fade targets (`733fb55`) | Done | Confirmed: boot test passes (c5) |
+| `AUD-015` | Medium | Open | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Solo dev / before `PH-02` gate | Pending |
 
 ### `AUD-014` — `OpacityEffect` mounted on hand-painted components that are not `OpacityProvider`s (runtime crash)
 
@@ -478,11 +479,29 @@ Required checks:
 - **Retest evidence:** 2026-09-04 (c5) — `flutter test` 35/35 including the boot test; `flutter analyze` clean.
 - **Closure/acceptance owner:** Claude (lead), 2026-09-04 (c5).
 
+### `AUD-015` — No `integration_test/` suite exists, so `AGENTS.md` §6's integration gate cannot run
+
+- **Status:** Open
+- **Severity:** Medium
+- **Detected:** 2026-09-04 (c6), while filling `AGENTS.md` §6's `[REQUIRED: ...]` verification table.
+- **Source breached:** `docs/rules.md` §8 — "integration tests cover real boundaries"; `AGENTS.md` §6 requires a runnable command per row.
+- **Affected users/data/components:** Every boundary the unit tests cannot reach: Hive save round-trip across a real app restart, the `/loadout` → `/battle` tray handoff, orientation lock, and the win/lose persistence path in `BattleWorld`.
+- **Evidence:** `ls integration_test` → absent. `flutter test` runs 35 tests, all of which are unit tests plus one widget/boot test; none drive a real device or a full journey (`UJ-01`..`UJ-03` in `docs/prd.md` §5).
+- **Reproduction:** `flutter test integration_test` → no such directory.
+- **Expected:** An `integration_test/` suite covering at minimum `UJ-01` (pick a loadout, play a level, win) and the save-survives-restart half of `UJ-02`, runnable on an emulator.
+- **Impact:** The single largest verification gap in the project. `AUD-014` already demonstrated that an analyzer-clean, unit-tested tree can still fail the moment it actually runs; every remaining phase gate (`PH-01`..`PH-06`) asserts observable in-game behavior that nothing currently automates. Until this exists, "verified" means "verified headless".
+- **Likely cause:** The suite was never created — `PH-00`'s gate asks for manual device observation instead, and no `TASK-*` owns automated integration coverage.
+- **Remediation task:** Add an `integration_test/` suite as part of `PH-02`'s exit gate (the first phase where a full level is playable end to end). Until then `AGENTS.md` §6 instructs agents to say so explicitly and fall back to the manual checklist in `docs/rules.md` §8.1.
+- **Owner/due:** Solo developer — before the `PH-02` gate.
+- **Workaround:** `docs/rules.md` §8.1's edge-case checklist, re-verified manually before each release build.
+- **Retest evidence:** Pending.
+- **Closure/acceptance owner:** Pending.
+
 ## 15. Gate decision
 
 - **Decision:** `No-go` (expected — `PH-00` exit gate is not yet met: `flutter analyze` is not clean).
 - **Scope of decision:** `PH-00` exit gate readiness.
-- **Blocking findings:** `AUD-002`, `AUD-005`, `AUD-007` remain open and block `PH-00`'s exit gate. `AUD-011`, `AUD-012`, `AUD-013` and `AUD-014` are closed — `flutter analyze` is clean across `lib/` and `flutter test` is 35/35 (c5).
+- **Blocking findings:** `AUD-002`, `AUD-005`, `AUD-007` remain open and block `PH-00`'s exit gate; `AUD-015` (no integration suite) blocks `PH-02`'s. `AUD-011`, `AUD-012`, `AUD-013` and `AUD-014` are closed — `flutter analyze` is clean across `lib/` and `flutter test` is 35/35 (c5).
 - **Accepted risks:** `AUD-001`, `AUD-003`, `AUD-010` — all Low/Info, deliberate and documented substitutions.
 - **Required follow-up:** Run the app on a device and confirm a level is playable start to win/lose (the remaining `GOAL` box); then close `AUD-002`/`AUD-005`/`AUD-007` before claiming the `PH-00` exit gate.
 - **Decision owner/date:** Solo developer (repo owner), 2026-09-04.

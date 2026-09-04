@@ -75,21 +75,35 @@ implementation.
 
 ## 6. Verification contract
 
-Replace these placeholders before implementation begins:
+Run every command from the repository root (or the active worktree root).
 
 | Check | Command | Required when |
 | --- | --- | --- |
-| Format | `[REQUIRED: format command]` | Source files change |
-| Static analysis / lint | `[REQUIRED: lint command]` | Source or config changes |
-| Type check | `[REQUIRED: type-check command or N/A]` | Typed source changes |
-| Unit tests | `[REQUIRED: unit-test command]` | Logic changes |
-| Integration tests | `[REQUIRED: integration-test command]` | Boundaries, APIs, database, or critical flows change |
-| UI / golden / visual tests | `[REQUIRED: UI verification command or N/A]` | User-facing UI changes |
-| Build | `[REQUIRED: build command]` | Before a release or when build configuration changes |
+| Format | `dart format lib test` | Source files change |
+| Static analysis / lint | `flutter analyze` | Source or config changes |
+| Type check | N/A — `flutter analyze` is the type check; Dart has no separate pass | Typed source changes |
+| Unit tests | `flutter test` | Logic changes |
+| Integration tests | `flutter test integration_test` — **no suite exists yet** (`AUD-015`); until it does, state that and use the manual evidence in `docs/rules.md` §8.1 | Boundaries, save/load, or critical flows change |
+| UI / golden / visual tests | `flutter test test/app_boot_test.dart` (widget/boot). No goldens by choice — every visual is a hand-painted `render(Canvas)`, so a golden would pin antialiasing, not behavior | User-facing UI changes |
+| Build | `flutter build apk --debug` (gate); `flutter build appbundle --release` before a release | Before a release or when build configuration changes |
+
+Zero-issue baseline: `flutter analyze` must print `No issues found!` and
+`flutter test` must be all-green before any task is called complete. Both were
+true at commit `397ce19` (35 tests), so a non-zero count is something you
+introduced — do not inherit it.
 
 Run the narrowest relevant checks during development and all applicable gates
 before declaring completion. If a required check cannot run, state exactly why,
 record it in `docs/audit.md`, and do not describe the work as fully verified.
+
+Two traps that cost real cycles here, both invisible to `flutter analyze`:
+
+- A clean analyzer does not mean the app boots. `AUD-014` was a runtime-only
+  contract breach that only appeared once the game was actually started.
+  Prefer one boot/integration check over another static pass.
+- In `testWidgets`, real I/O (`Content.load()`, `SaveStore.open()`) must run in
+  `setUpAll` — the fake-async zone hangs it otherwise — and Flame's ticker never
+  idles, so `pumpAndSettle` times out. Pump a fixed number of frames.
 
 ## 7. Documentation synchronization
 
