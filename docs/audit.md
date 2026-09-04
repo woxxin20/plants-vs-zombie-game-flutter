@@ -399,7 +399,7 @@ Required checks:
 
 ### `AUD-013` — `const Vector2(...)` used across five world screens, but `vector_math`'s `Vector2` has no `const` constructor
 
-- **Status:** Open
+- **Status:** Closed
 - **Severity:** Low
 - **Detected:** 2026-09-04T00:00+05:30, c3 planning pass (surfaced while verifying `AUD-011`'s fix)
 - **Source breached:** N/A — pre-existing bug, not a regression from this cycle's work.
@@ -409,15 +409,15 @@ Required checks:
 - **Expected:** Each `const Vector2(...)` becomes a plain (non-const) `Vector2(...)`, and any `static const _field = Vector2(...)` becomes `static final _field = Vector2(...)`.
 - **Impact:** Blocks `flutter analyze` clean in the same five files `AUD-011` targets, but is an unrelated defect class (const-constructibility, not type mismatch) — do not conflate the two fixes in one task.
 - **Likely cause:** Author assumed `Vector2` supports `const` (common in hand-rolled vector types); `vector_math`'s does not.
-- **Remediation task:** Next planning slice after `AUD-011`/`TASK-008` lands — mechanical `const` → non-const edit across the five files, no `TASK-*` number assigned yet.
-- **Owner/due:** Claude planner, next cycle.
-- **Workaround:** None — affected screens fail to compile until fixed.
-- **Retest evidence:** Pending.
-- **Closure/acceptance owner:** Pending.
+- **Remediation task:** Landed in commit `adf7676` (c5) — locals became `final`, `map_world.dart`'s `static const _cardSize` became `static final`, and the four `const Vector2(...)` call sites in `super(...)` initializers dropped `const`. Flame's `PositionComponent` copies `size`/`position` into a `NotifyingVector2` (`flame/lib/src/components/position_component.dart:85`), so a shared non-const `Vector2` cannot be mutated through a component.
+- **Owner/due:** Claude (lead), done 2026-09-04.
+- **Workaround:** None needed — fixed.
+- **Retest evidence:** 2026-09-04 (c5) — `flutter analyze --no-pub` dropped 31 → 6 (the 22 `AUD-013` errors plus 3 lints cleared in the same commit); `flutter test` 34/34.
+- **Closure/acceptance owner:** Claude (lead), 2026-09-04 (c5).
 
 ### `AUD-012` — Remaining `flutter analyze` errors unrelated to `AUD-011`, deferred to a later planning pass
 
-- **Status:** Open
+- **Status:** Closed — `right_panel_component.dart`'s import landed in `e8a179d`, the two minor lints in `adf7676`, and `lib/app.dart`/`PrismDefenseApp` in `733fb55`. `flutter analyze` is clean across `lib/`.
 - **Severity:** Low
 - **Detected:** 2026-09-03T18:45+05:30, c2 planning pass
 - **Source breached:** N/A — pre-existing incomplete work, not a regression.
@@ -456,16 +456,35 @@ Required checks:
 | `AUD-009` | High | Closed | Engineering practice | Commit working tree checkpoint | Solo dev | Confirmed committed (c1/c2) |
 | `AUD-010` | Info | Accepted risk | Project directive | None (covered by `AUD-009`) | Solo dev | N/A |
 | `AUD-011` | Medium | Closed | `lib/core/tokens.dart` vs its own doc comment | 3-file fix, `TASK-008`, landed by Cursor (`8387953`) | Cursor — done | Confirmed: analyze 34, tests 34/34 (c4) |
-| `AUD-012` | Low | Open | Incomplete `TASK-007`; missing import | Import sub-slice assigned to Cursor (c4, `.ai/inbox/gnhf-assignment.md`); `lib/app.dart` + 2 lints deferred | Cursor (import) / Claude planner (rest), next cycle | Pending |
-| `AUD-013` | Low | Open | `const Vector2(...)` has no const constructor in `vector_math` | Next planning slice, mechanical const removal | Claude planner / next cycle | Pending |
+| `AUD-012` | Low | Closed | Incomplete `TASK-007`; missing import | Import fix (`e8a179d`, Cursor); `lib/app.dart` shell + 2 lints (`adf7676`, `733fb55`, Claude) | Done | Confirmed: analyze clean, tests 35/35 (c5) |
+| `AUD-013` | Low | Closed | `const Vector2(...)` has no const constructor in `vector_math` | Mechanical const removal across 5 world files (`adf7676`) | Done | Confirmed: analyze 31 → 6 (c5) |
+| `AUD-014` | Medium | Closed | Flame `OpacityEffect` contract | `FadeableRender` mixin on the 4 hand-painted fade targets (`733fb55`) | Done | Confirmed: boot test passes (c5) |
+
+### `AUD-014` — `OpacityEffect` mounted on hand-painted components that are not `OpacityProvider`s (runtime crash)
+
+- **Status:** Closed
+- **Severity:** Medium
+- **Detected:** 2026-09-04 (c5) — surfaced the first time the app was actually booted, by the new `test/app_boot_test.dart`.
+- **Source breached:** Flame's effect contract — `OpacityEffect` requires an `OpacityProvider` target, which only `HasPaint` supplies for free.
+- **Affected users/data/components:** `lib/game/components/beam_component.dart` (beam pulse), `lib/game/components/shadow_component.dart` (fog shimmer and the death fade-out), `lib/game/worlds/home_world.dart` (`_DioramaBulb`, `_DioramaBeam`).
+- **Evidence:** `UnsupportedError: Can only apply this effect to OpacityProvider` thrown from `EffectTarget.onMount` (`flame/src/effects/effect_target.dart:21`) during `Component._mount`, on the first frame after `HomeWorld` mounts.
+- **Reproduction:** `flutter test test/app_boot_test.dart` against `adf7676`.
+- **Expected:** Each of those components exposes an `opacity` and dims when a fade runs.
+- **Impact:** Every affected component threw on mount — the home screen diorama, every beam and every shadow death. Invisible to `flutter analyze` (the contract is enforced at runtime, not by the type system), which is why an analyzer-clean tree still could not boot.
+- **Likely cause:** These components draw with several ad-hoc `Paint`s rather than one `HasPaint` paint, so they never picked up the `OpacityProvider` implementation their effects assumed.
+- **Remediation task:** `lib/game/components/fadeable.dart` — a `FadeableRender` mixin fading the subtree in one layer; applied to all four (`733fb55`).
+- **Owner/due:** Claude (lead), done 2026-09-04.
+- **Workaround:** None needed — fixed.
+- **Retest evidence:** 2026-09-04 (c5) — `flutter test` 35/35 including the boot test; `flutter analyze` clean.
+- **Closure/acceptance owner:** Claude (lead), 2026-09-04 (c5).
 
 ## 15. Gate decision
 
 - **Decision:** `No-go` (expected — `PH-00` exit gate is not yet met: `flutter analyze` is not clean).
 - **Scope of decision:** `PH-00` exit gate readiness.
-- **Blocking findings:** `AUD-012` (Low — `right_panel_component.dart` import sub-slice assigned to Cursor this cycle, `lib/app.dart`+2 lints still deferred); `AUD-013` (Low — 22 pre-existing `const Vector2` errors, deferred); `AUD-002`, `AUD-005`, `AUD-007` remain open and also block `PH-00`'s exit gate. `AUD-011` is now closed (confirmed fixed and committed).
+- **Blocking findings:** `AUD-002`, `AUD-005`, `AUD-007` remain open and block `PH-00`'s exit gate. `AUD-011`, `AUD-012`, `AUD-013` and `AUD-014` are closed — `flutter analyze` is clean across `lib/` and `flutter test` is 35/35 (c5).
 - **Accepted risks:** `AUD-001`, `AUD-003`, `AUD-010` — all Low/Info, deliberate and documented substitutions.
-- **Required follow-up:** Land the `right_panel_component.dart` import fix (`AUD-012` sub-slice) via Cursor this cycle; next planning cycles assign `lib/app.dart`/`TASK-007` and the `AUD-013` const fix; then close `AUD-002`/`AUD-005`/`AUD-007` before claiming the `PH-00` exit gate.
+- **Required follow-up:** Run the app on a device and confirm a level is playable start to win/lose (the remaining `GOAL` box); then close `AUD-002`/`AUD-005`/`AUD-007` before claiming the `PH-00` exit gate.
 - **Decision owner/date:** Solo developer (repo owner), 2026-09-04.
 
 ## 16. Audit history
@@ -475,4 +494,5 @@ Required checks:
 | 2026-09-03 | Baseline (pre-`PH-00`) | No-go | 0/1/4/2 | Claude Sonnet 5 | First audit. Found the working tree already contains partial, uncommitted, unverified game code beyond what this audit was briefed to expect — see `AUD-008`. Most urgent finding is `AUD-009` (uncommitted work, High). |
 | 2026-09-03 (c2) | `PH-00` in progress | No-go | 0/0/2/1 | Claude Sonnet 5 (planner) | `AUD-008`/`AUD-009` closed (fixed/committed). `flutter analyze` now shows 49 errors from newer code — root-caused to one file (`AUD-011`, assigned this cycle) plus a small remainder (`AUD-012`, next cycle). |
 | 2026-09-04 (c3) | `PH-00` in progress | No-go | 0/0/2/2 | Claude Sonnet 5 (planner) | Cursor tried c2's 1-file `AUD-011` fix, returned `IMPLEMENTATION_BLOCKED` (2 consumer files also need edits). Planner traced every consumer, verified a 3-file fix locally (56→34 issues, reverted before handoff), reassigned to Cursor. Surfaced a new pre-existing defect (`AUD-013`, `const Vector2` has no const constructor) while verifying — it accounts for the gap between the c2 assignment's optimistic ≤12 target and the real 34. |
+| 2026-09-04 (c5) | `PH-00` in progress | No-go | 0/0/0/0 | Claude Opus 5 (lead) | GNHF loop stopped after its c4 planner stalled; the lead took the work directly. Closed `AUD-013` (`adf7676`, analyze 31 → 6) and `AUD-012` (`733fb55`, `lib/app.dart` shell + boot test, analyze clean). Booting the app for the first time surfaced `AUD-014` — `OpacityEffect` on four non-`OpacityProvider` components — fixed in the same commit. `flutter analyze`: No issues found. `flutter test`: 35/35. Gate stays No-go on `AUD-002`/`AUD-005`/`AUD-007` and the still-unproven on-device play-through. |
 | 2026-09-04 (c4) | `PH-00` in progress | No-go | 0/0/1/2 | Claude Sonnet 5 (planner) | Cursor landed the c3 3-file `AUD-011` fix (commit `8387953`) — reran `flutter analyze` (34 issues, matches evidence) and `flutter test` (34/34) to confirm, closed `AUD-011`. Assigned the smallest remaining `AUD-012` piece — a missing `package:flame/events.dart` import in `right_panel_component.dart` (34→31) — to Cursor; `lib/app.dart`/`TASK-007` and two minor lints stay deferred as a separate, larger slice. |
