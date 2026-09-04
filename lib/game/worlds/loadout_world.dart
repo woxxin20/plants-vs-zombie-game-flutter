@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flame/events.dart';
 
 import '../../core/layout.dart';
@@ -141,6 +142,19 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
     }
     _pickedLabel.text = 'PICKED ${_selected.length}/$_trayLimit';
     _startButton.enabled = _selected.length == _trayLimit;
+  }
+
+  /// Test seam for the pick-6 gate (PH-03) — production UI uses slot taps.
+  @visibleForTesting
+  void debugToggle(String toolId) => _toggle(toolId);
+
+  @visibleForTesting
+  bool get debugCanStart => _startButton.enabled;
+
+  @visibleForTesting
+  void debugPressStart() {
+    if (!_startButton.enabled) return;
+    onStart(_selected.toList(growable: false));
   }
 }
 
@@ -315,6 +329,7 @@ class _ToolSlot extends PositionComponent with TapCallbacks {
           Paint()..color = C.mirrorMetal,
         );
       case 'prism':
+        // dart:ui Gradient.linear requires colorStops when colors.length != 2.
         final colors = C.prismSpectrum;
         canvas.drawPath(
           Path()
@@ -327,6 +342,7 @@ class _ToolSlot extends PositionComponent with TapCallbacks {
               Offset(c.dx - 12, c.dy),
               Offset(c.dx + 12, c.dy),
               colors,
+              [for (var i = 0; i < colors.length; i++) i / (colors.length - 1)],
             ),
         );
       case 'frost':
