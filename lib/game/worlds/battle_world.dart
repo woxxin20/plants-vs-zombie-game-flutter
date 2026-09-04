@@ -10,6 +10,7 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 
+import '../../core/audio.dart';
 import '../../core/layout.dart';
 import '../../core/save_store.dart';
 import '../../core/tokens.dart';
@@ -179,6 +180,8 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     add(tool);
 
     _fx.emit(() => fx.placeBurst(center));
+    GameAudio.play(Sfx.place);
+    GameAudio.haptic();
     _refreshGlowPools();
     return result;
   }
@@ -200,6 +203,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     final center = layout.tileCenter(row, col);
     final footprint = rules.bombFootprint(row, col);
     _fx.emit(() => fx.explosionBurst(center));
+    GameAudio.play(Sfx.explosion);
 
     for (final s in shadows.toList()) {
       final c = layout.tileColFromX(s.position.x);
@@ -284,6 +288,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
         onCollect: (orb) {
           _setGlow(glow + kGlowFallAmount);
           _fx.emit(() => fx.collectBurst(orb.position.clone()));
+          GameAudio.play(Sfx.collect);
         },
       ),
     );
@@ -406,6 +411,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
       _fx.emit(
         () => fx.sweepBurst(Vector2(layout.origin.x, layout.laneCenterY(lane))),
       );
+      GameAudio.play(Sfx.sweep);
       for (final victim in shadows.where((x) => x.lane == lane).toList()) {
         _killShadow(victim);
       }
@@ -477,10 +483,12 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
           _killShadow(s);
         } else if (fired) {
           _fx.emit(() => fx.hitSpark(s.position.clone()));
+          GameAudio.play(Sfx.hit);
         }
       }
     }
 
+    if (fired) GameAudio.play(Sfx.shoot);
     _renderSegments(result.segments);
   }
 
@@ -542,6 +550,8 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     if (level.unlockReward case final reward?) save.unlocked.add(reward);
     SaveStore.I.flush();
 
+    GameAudio.play(Sfx.win);
+    _fx.emit(() => fx.confettiFall(Vector2(kBaselineSize.x / 2, 20), 420));
     game.pauseEngine();
     _showOverlay(
       WinOverlay(
@@ -557,6 +567,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     state = GameState.lost;
     SaveStore.I.state.totalPlays += 1;
     SaveStore.I.flush();
+    GameAudio.play(Sfx.lose);
     // Spec §12: the world shakes before the overlay lands.
     game.camera.viewfinder.add(
       MoveByEffect(

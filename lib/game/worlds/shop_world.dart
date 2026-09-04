@@ -4,6 +4,7 @@ library;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../../core/layout.dart';
 import '../../core/save_store.dart';
@@ -70,13 +71,24 @@ class ShopWorld extends World with HasGameReference<LightVsShadowGame> {
     // --- right: remove ads card ------------------------------------------
     final cardSize = Vector2(280, 120);
     final cardPos = Vector2(viewSize.x - cardSize.x - S.screenPad - S.x4, 110);
-    await add(
-      _RemoveAdsCard(
-        size: cardSize,
-        position: cardPos,
-        onPressed: onRemoveAdsPressed,
-      ),
+    _removeAdsCard = _RemoveAdsCard(
+      size: cardSize,
+      position: cardPos,
+      onPressed: _buyRemoveAds,
     );
+    await add(_removeAdsCard);
+  }
+
+  late final _RemoveAdsCard _removeAdsCard;
+
+  /// Local entitlement grant for PH-04. Real store purchase is PH-05 / IAP.
+  void _buyRemoveAds() {
+    final save = SaveStore.I.state;
+    if (save.removeAds) return;
+    save.removeAds = true;
+    SaveStore.I.flush();
+    _removeAdsCard.markOwned();
+    onRemoveAdsPressed();
   }
 
   bool get _traySlotAvailable =>
@@ -97,6 +109,19 @@ class ShopWorld extends World with HasGameReference<LightVsShadowGame> {
       ..enabled = _traySlotAvailable
       ..setLabel(_traySlotLabel);
   }
+
+  /// Test seams — production UI uses the WorldButton taps.
+  @visibleForTesting
+  void debugBuyTraySlot() => _buyTraySlot();
+
+  @visibleForTesting
+  void debugBuyRemoveAds() => _buyRemoveAds();
+
+  @visibleForTesting
+  bool get debugTraySlotEnabled => _traySlotButton.enabled;
+
+  @visibleForTesting
+  bool get debugRemoveAdsEnabled => _removeAdsCard.purchaseEnabled;
 }
 
 class _RemoveAdsCard extends PositionComponent {
@@ -108,6 +133,7 @@ class _RemoveAdsCard extends PositionComponent {
        super(size: size, position: position);
 
   final VoidCallback _onPressed;
+  late final WorldButton _button;
 
   static final _fill = Paint()..color = C.surface2;
 
@@ -141,17 +167,24 @@ class _RemoveAdsCard extends PositionComponent {
         position: Vector2(S.cardPad, S.cardPad + 26),
       ),
     );
-    await add(
-      WorldButton(
-        size: Vector2(size.x - S.cardPad * 2, 36),
-        label: owned ? 'ADS REMOVED' : 'REMOVE ADS',
-        onPressed: _onPressed,
-        background: C.primary,
-        textColor: C.onPrimary,
-        enabled: !owned,
-        textStyle: T.bodySmall,
-        position: Vector2(S.cardPad, size.y - S.cardPad - 36),
-      ),
+    _button = WorldButton(
+      size: Vector2(size.x - S.cardPad * 2, 36),
+      label: owned ? 'ADS REMOVED' : 'REMOVE ADS',
+      onPressed: _onPressed,
+      background: C.primary,
+      textColor: C.onPrimary,
+      enabled: !owned,
+      textStyle: T.bodySmall,
+      position: Vector2(S.cardPad, size.y - S.cardPad - 36),
     );
+    await add(_button);
   }
+
+  void markOwned() {
+    _button
+      ..enabled = false
+      ..setLabel('ADS REMOVED');
+  }
+
+  bool get purchaseEnabled => _button.enabled;
 }

@@ -1,12 +1,12 @@
 /// Settings screen (spec §12) — Sound / Haptics toggles + destructive Reset.
 library;
 
-import 'dart:ui';
-
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
+import 'package:flutter/widgets.dart';
 
+import '../../core/audio.dart';
 import '../../core/layout.dart';
 import '../../core/save_store.dart';
 import '../../core/tokens.dart';
@@ -65,6 +65,7 @@ class SettingsWorld extends World with HasGameReference<LightVsShadowGame> {
         onChanged: (v) {
           save.sound = v;
           SaveStore.I.flush();
+          GameAudio.setSoundEnabled(v);
         },
         position: Vector2(switchX, y),
       ),
@@ -85,6 +86,7 @@ class SettingsWorld extends World with HasGameReference<LightVsShadowGame> {
         onChanged: (v) {
           save.haptics = v;
           SaveStore.I.flush();
+          GameAudio.setHapticsEnabled(v);
         },
         position: Vector2(switchX, y),
       ),
@@ -152,6 +154,17 @@ class SwitchComponent extends PositionComponent with TapCallbacks {
     );
     onChanged(_value);
   }
+
+  /// Test seam — production uses taps.
+  @visibleForTesting
+  void debugSet(bool value) {
+    if (_value == value) return;
+    _value = value;
+    onChanged(_value);
+  }
+
+  @visibleForTesting
+  bool get debugValue => _value;
 }
 
 /// Draws its own thumb circle since it never leaves the parent's paint set.
