@@ -47,7 +47,7 @@ Rules:
 | `PH-02` | Shadow walk/eat + beam trace (mirror/prism) + collisions + HP bars + sweep + win/lose overlays, one full level playable | Spec §25 Phase 2, §7, §8, §15, §16 | `PH-01` | Gate review — 6/7 at `d39b6b0`; on-device playthrough unrun (no hardware). `AUD-017` found and fixed in review | 2026-09-04, Claude (lead) |
 | `PH-03` | All 20 levels JSON + Loadout pick-6-of-8 + Scout panel + cooldowns + every tool/shadow special behavior | Spec §25 Phase 3, §6, §7, §9 | `PH-02` | Gate review — 5/5 at `70f19e1`, data-driven against the JSON | 2026-09-04, Claude (lead) |
 | `PH-04` | Full particle/effects inventory + sound/haptics + stars/coins/daily + Shop world + Settings world | Spec §25 Phase 4, §18, §19, §23 | `PH-03` | Blocked — 4/5 at `f545e79`; the audio item cannot be met, `assets/audio/` is empty (human-blocked). `AUD-018` logged | 2026-09-04, Claude (lead) |
-| `PH-05` | Ads (banner/interstitial/rewarded) + IAP remove-ads + multi-viewport + profiled 60fps | Spec §25 Phase 5, §20 | `PH-04` | Not started | [Owner/date] |
+| `PH-05` | Ads (banner/interstitial/rewarded) + IAP remove-ads + multi-viewport + profiled 60fps | Spec §25 Phase 5, §20 | `PH-04` | Partially deferred — ads/IAP scoped out by the owner 2026-09-04 (exception recorded in §9); multi-viewport + 60fps remain in scope | 2026-09-04, Claude (lead) |
 | `PH-06` | Final art-direction pass + signed APK/AAB + full §24 QA checklist passes | Spec §25 Phase 6, §4, §24 | `PH-05` | Not started | [Owner/date] |
 
 Rename/reorder phases only by changing the authoritative spec first; this
@@ -339,22 +339,29 @@ spec §20 frequency rules; the game runs correctly at both 812x375 and
 
 ### Exit gate
 
-- [ ] Banner shows on Home/Map only, hidden when `removeAds==true` (manual,
-      both states).
-- [ ] Interstitial shows only after a win where `levelId % 3 == 0`, capped
-      at 1 per 3 wins (test/log evidence).
-- [ ] Rewarded boost button disables after first use per battle (test, QA
-      checklist coverage).
-- [ ] IAP `remove_ads` purchase completes in a store sandbox and
-      `restorePurchases()` recovers entitlement on reinstall (manual,
-      sandbox evidence).
-- [ ] Layout holds with no overlap/clipping at both 812x375 and 1280x720
-      (screenshot evidence both).
-- [ ] `flutter run --profile` sustains 60fps on a low-end Android 720p
-      target with draw calls <50/frame (Flame FPS counter + profiler
-      evidence).
+**Monetization deferred, 2026-09-04 (c7).** The repo owner scoped ads and IAP
+out of the current push to concentrate on gameplay. Per §1, the criteria are
+deferred with an exception record, not deleted:
 
-**Mapped tasks:** `TASK-040`..`TASK-043` (coarse).
+| Field | Value |
+| --- | --- |
+| Deferred | The four ad/IAP criteria below (banner, interstitial, rewarded, IAP sandbox) |
+| Owner | Repo owner |
+| Risk | `google_mobile_ads` and `in_app_purchase` stay in `pubspec.yaml` and `lib/core/monetization.dart` stays compiled but unexercised, so it can rot silently. `PRD-FR-016`..`PRD-FR-018` remain `Must` in the PRD and are NOT withdrawn. |
+| Expiry | Before any store submission — these gate `PH-06`, which cannot pass without them |
+| Task | `TASK-040`..`TASK-041` move to Deferred; `AUD-006` stays open |
+
+- [~] **DEFERRED** — Banner shows on Home/Map only, hidden when `removeAds==true`.
+- [~] **DEFERRED** — Interstitial only after a win where `levelId % 3 == 0`, capped 1 per 3 wins.
+- [~] **DEFERRED** — Rewarded boost button disables after first use per battle.
+- [~] **DEFERRED** — IAP `remove_ads` purchase + `restorePurchases()` in a store sandbox.
+- [ ] Layout holds with no overlap/clipping at both 812x375 and 1280x720
+      (screenshot evidence both). **Still in scope — this is gameplay, not
+      monetization, and it is automatable.**
+- [ ] `flutter run --profile` sustains 60fps on a low-end Android 720p
+      target with draw calls <50/frame. **Still in scope; needs a device.**
+
+**Mapped tasks:** `TASK-040`..`TASK-041` deferred; `TASK-042`..`TASK-043` active.
 **Evidence:** [Filled at gate review.]
 
 ## 10. `PH-06` — Final art pass and release build
@@ -408,5 +415,6 @@ builds succeed; the full §24 QA checklist (all 20 edge cases) passes.
 | --- | --- | --- | --- | --- | --- |
 | 2026-09-03 | `PH-07` | Created, marked Complete | Governance kit deployed, repo repurposed to Flame stack, `flutter pub get` passing | `AUD-001`..`AUD-008`, `TASK-001`..`TASK-006` | Solo developer |
 | 2026-09-03 | `PH-00`..`PH-06` | Created from spec §25 Phase 0-6, all Not started | First fill of governance templates against `LIGHT_vs_SHADOW_Prism_Defense_Flame_Spec.md` | Spec §25, §24 | Solo developer |
+| 2026-09-04 | `PH-05` | Four ad/IAP exit criteria deferred with an exception record (§1 requires owner/risk/expiry/task, not deletion); multi-viewport and 60fps stay in scope | Repo owner scoped monetization out of the current push to concentrate on gameplay. `PRD-FR-016`..`018` are NOT withdrawn and `AUD-006` stays open — this is a sequencing decision, not a product change | `AUD-006`, `TASK-040`/`TASK-041` deferred | Repo owner (decision), Claude (lead) |
 | 2026-09-04 | `PH-02`, `PH-03`, `PH-04` | Not started → Gate review / Gate review / Blocked, with commit evidence per phase | Delivered by Cursor under bounded assignment and verified by the lead re-running every command; `PH-04` cannot pass its audio item until assets exist | `AUD-017` (found in review, fixed `ed0c0f9`/`d39b6b0`), `AUD-018`; commits `f7d52fd`, `70f19e1`, `f545e79` | Claude (lead), implementation by Cursor |
 | 2026-09-04 | `PH-00` | Status Not started → In progress; 4 of 6 exit-gate items ticked with commit evidence; gate wording corrected from `LightVsShadowApp` to the shell that exists, `PrismDefenseApp` | Reconciling the gate against the tree after `TASK-007`/`TASK-008` landed — the status had never been updated and the gate named a class that was never written | `AUD-011`..`AUD-014`, `TASK-007`, `TASK-008`, commits `733fb55`/`397ce19` | Claude (lead) |
