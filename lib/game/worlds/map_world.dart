@@ -28,7 +28,7 @@ class MapWorld extends World with HasGameReference<LightVsShadowGame> {
 
   static const _cols = 5;
   static const _rows = 4;
-  static const _cardSize = Vector2(96, 64);
+  static final _cardSize = Vector2(96, 64);
   static const _gap = S.x2;
 
   @override
@@ -92,7 +92,7 @@ class MapWorld extends World with HasGameReference<LightVsShadowGame> {
 class _CoinChip extends PositionComponent {
   _CoinChip({required this.coins, required Vector2 position})
     : super(
-        size: const Vector2(112, 32),
+        size: Vector2(112, 32),
         position: position,
         anchor: Anchor.topRight,
       );

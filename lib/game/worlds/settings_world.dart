@@ -103,7 +103,7 @@ class SwitchComponent extends PositionComponent with TapCallbacks {
     required this.onChanged,
     Vector2? position,
   }) : _value = value,
-       super(size: const Vector2(40, 22), position: position);
+       super(size: Vector2(40, 22), position: position);
 
   bool _value;
   final void Function(bool value) onChanged;
@@ -170,7 +170,7 @@ class _ThumbCircle extends PositionComponent {
 /// the window lapse silently disarms it.
 class _ResetRow extends PositionComponent with TapCallbacks {
   _ResetRow({required Vector2 position})
-    : super(position: position, size: const Vector2(300, 40));
+    : super(position: position, size: Vector2(300, 40));
 
   bool _armed = false;
   double _remaining = 0;

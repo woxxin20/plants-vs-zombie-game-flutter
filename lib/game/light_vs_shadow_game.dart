@@ -5,7 +5,6 @@ library;
 
 import 'dart:ui';
 
-import 'package:flame/camera.dart';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
@@ -28,6 +27,7 @@ class LightVsShadowGame extends FlameGame
 
   @override
   Future<void> onLoad() async {
+    await super.onLoad();
     camera.viewfinder.anchor = Anchor.topLeft;
     camera.viewfinder.visibleGameSize = kBaselineSize.clone();
     if (_pendingWorld case final w?) {

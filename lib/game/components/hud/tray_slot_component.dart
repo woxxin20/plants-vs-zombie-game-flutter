@@ -46,7 +46,6 @@ class TraySlotComponent extends PositionComponent with TapCallbacks, HasPaint<St
     }
   }
 
-  late final HudLabel _costLabel;
   late final HudLabel _cooldownLabel;
 
   @override
@@ -59,7 +58,7 @@ class TraySlotComponent extends PositionComponent with TapCallbacks, HasPaint<St
         ..color = C.gridBorder,
     );
     add(
-      _costLabel = HudLabel(
+      HudLabel(
         '${def.cost}',
         style: T.label,
         anchor: Anchor.topRight,

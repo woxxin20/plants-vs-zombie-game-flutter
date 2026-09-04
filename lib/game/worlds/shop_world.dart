@@ -50,7 +50,7 @@ class ShopWorld extends World with HasGameReference<LightVsShadowGame> {
     );
 
     // --- left: tray slot purchase ---------------------------------------
-    const btnSize = Vector2(320, 56);
+    final btnSize = Vector2(320, 56);
     _traySlotButton = WorldButton(
       size: btnSize.clone(),
       label: _traySlotLabel,
@@ -63,7 +63,7 @@ class ShopWorld extends World with HasGameReference<LightVsShadowGame> {
     await add(_traySlotButton);
 
     // --- right: remove ads card ------------------------------------------
-    const cardSize = Vector2(280, 120);
+    final cardSize = Vector2(280, 120);
     final cardPos = Vector2(viewSize.x - cardSize.x - S.screenPad - S.x4, 110);
     await add(_RemoveAdsCard(size: cardSize, position: cardPos, onPressed: onRemoveAdsPressed));
   }

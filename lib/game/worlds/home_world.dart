@@ -86,7 +86,7 @@ class HomeWorld extends World with HasGameReference<LightVsShadowGame> {
     );
 
     // --- right column: preview card + daily chip -------------------------
-    const cardSize = Vector2(280, 160);
+    final cardSize = Vector2(280, 160);
     final cardX = viewSize.x - cardSize.x - leftX;
     const cardY = 40.0;
     await add(
@@ -98,7 +98,7 @@ class HomeWorld extends World with HasGameReference<LightVsShadowGame> {
     final dayOfYear = today.difference(DateTime(today.year)).inDays + 1;
     final claimedToday = save.lastDailyClaimed == dayOfYear;
 
-    const chipSize = Vector2(180, 32);
+    final chipSize = Vector2(180, 32);
     final chipX = cardX + (cardSize.x - chipSize.x) / 2;
     final chipY = cardY + cardSize.y + S.x4;
     await add(
@@ -151,7 +151,7 @@ class _PreviewCard extends PositionComponent {
   Future<void> onLoad() async {
     const rows = 3;
     const cols = 4;
-    const tile = Vector2(44, 24);
+    final tile = Vector2(44, 24);
     const gap = S.x1;
     final gridW = cols * tile.x + (cols - 1) * gap;
     final gridH = rows * tile.y + (rows - 1) * gap;

@@ -63,7 +63,7 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
     );
 
     // --- Scout panel -------------------------------------------------
-    const panelSize = Vector2(340, 351);
+    final panelSize = Vector2(340, 351);
     final panelPos = Vector2(S.screenPad, S.screenPad);
     await add(_ScoutPanel(size: panelSize, position: panelPos, level: level));
 
@@ -91,7 +91,7 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
         .where(save.unlocked.contains)
         .toList(growable: false);
 
-    const slotSize = Vector2(76, 96);
+    final slotSize = Vector2(76, 96);
     const cols = 4;
     const gap = S.x3;
     final gridW = cols * slotSize.x + (cols - 1) * gap;
@@ -114,7 +114,7 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
     }
 
     // --- start battle button --------------------------------------------
-    const startSize = Vector2(260, 56);
+    final startSize = Vector2(260, 56);
     _startButton = WorldButton(
       size: startSize.clone(),
       label: 'START BATTLE',
@@ -241,7 +241,7 @@ class _ToolSlot extends PositionComponent with TapCallbacks {
     required this.tool,
     required Vector2 position,
     required this.onTap,
-  }) : super(position: position, size: const Vector2(76, 96));
+  }) : super(position: position, size: Vector2(76, 96));
 
   final ToolDef tool;
   final void Function(String toolId) onTap;
