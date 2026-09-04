@@ -254,5 +254,50 @@ void main() {
 
       expect(game.paused, isTrue);
     });
+
+    testWidgets('backgrounding pauses the BattleWorld itself (AUD-017)', (
+      tester,
+    ) async {
+      // Regression for AUD-017. app.dart read `_game.world`, but swapWorld
+      // sets `camera.world` and FlameGame.world stays the default World
+      // forever -- so `world is BattleWorld` was always false and this half
+      // of QA #10 was dead code. The sibling test above passes either way,
+      // because pauseEngine() runs regardless; only the world's own state
+      // distinguishes the fixed code from the broken code.
+      //
+      // PrismDefenseApp must be the pumped widget: it owns the
+      // WidgetsBindingObserver that receives the lifecycle event.
+      await tester.pumpWidget(const ProviderScope(child: PrismDefenseApp()));
+      await _pumpFrames(tester, 10);
+
+      final game = tester
+          .widget<RiverpodAwareGameWidget<LightVsShadowGame>>(
+            find.byType(RiverpodAwareGameWidget<LightVsShadowGame>),
+          )
+          .game!;
+
+      final world = BattleWorld(
+        levelId: 1,
+        tray: _tray,
+        onWin: (_, _) {},
+        onLose: () {},
+      );
+      game.swapWorld(world);
+      await _pumpFrames(tester, 20);
+      expect(world.isLoaded, isTrue);
+
+      // Precondition: without this, a world that was already paused would
+      // make the assertion below prove nothing.
+      expect(world.state, isNot(GameState.paused));
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await _pumpFrames(tester, 2);
+
+      expect(
+        world.state,
+        GameState.paused,
+        reason: 'BattleWorld.pause() must run, not just game.pauseEngine()',
+      );
+    });
   });
 }
