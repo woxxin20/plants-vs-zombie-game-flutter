@@ -48,20 +48,40 @@ authoritative source remains unchanged and the mismatch must be recorded in
 - **Current objective:** Get a `flutter analyze`-clean, test-covered
   `FlameGame` bootstrap running landscape-locked at 60fps (`PH-00` exit
   gate, `docs/phases.md` §4), then proceed to `PH-01`/`PH-02`.
-- **Active task:** Run the app on a real device / emulator and play one
-  level start to win/lose. That is the last unchecked `GOAL` box in
-  `STATE.md`, and nothing in the test suite proves it.
-- **Last verified version:** Working tree is committed; `HEAD` is `733fb55`
-  on `overnight/gnhf-prism-defense-20260903`. `AUD-009`, `AUD-011`,
-  `AUD-012`, `AUD-013` and `AUD-014` are all closed.
-- **Overall health:** On track for `PH-00`. `flutter analyze` is clean (56 →
-  34 → 31 → 6 → 0 across c3-c5) and `flutter test` is 35/35. The one lesson
-  from c5: an analyzer-clean tree still could not boot — `AUD-014` was a
-  runtime-only contract breach that only appeared once the app was actually
-  started. Prefer a boot/integration test over another analyzer pass for the
-  next class of defect. Also do not assume `implementation_plan.md`'s
-  per-task `Not started` labels reflect reality — reconcile against actual
-  files before starting a task (see `AUD-008`'s original lesson).
+- **Active task:** `AUD-021` — entering a battle on device renders the grid
+  and lane sweeps but no HUD at all, so a battle cannot be played. Prime
+  suspect is `LightVsShadowGame.swapWorld`, which clears `camera.viewport`
+  on its last line while the incoming world's `onLoad` (which adds the HUD)
+  runs asynchronously afterwards.
+- **Last verified version:** Merged to `main` as `54eaee2` (29 commits from
+  `overnight/gnhf-prism-defense-20260903`, which is retained). `flutter
+  analyze` clean, `flutter test` 66/66 on `main`. `AUD-009`, `AUD-011`..
+  `AUD-017`, `AUD-019` and `AUD-020` are closed; `AUD-018` and `AUD-021`
+  are open.
+- **Overall health:** The game builds, installs, launches and navigates on
+  real hardware (SM-S711B, Android 16) — first achieved 2026-09-04. It is
+  not yet playable: `AUD-021` blocks the battle HUD.
+
+  **The lesson of this project, now demonstrated three times.** A green
+  suite and a correct-looking screenshot are not evidence that the product
+  works. `AUD-014` (crash on first boot), `AUD-017` (dead lifecycle branch),
+  `AUD-019` (every tap swallowed — the entire game unusable) and `AUD-020`
+  (no level startable) were all invisible to a clean analyzer and a passing
+  suite. `AUD-019` and `AUD-020` were found within ten minutes of the first
+  device run, after weeks of green CI-equivalent signals.
+
+  Two specific test-design faults to avoid repeating:
+  1. **Guard without reachability.** `PH-03` asserted that "fewer/more than
+     6 tools is blocked" — true throughout — while 6 was unreachable, so no
+     level could be played. Assert that the required state is attainable,
+     not only that wrong states are rejected.
+  2. **Assertions that restate the implementation.** Three `PH-03` special
+     checks are `expect(loaded.resistsBeam, id == 'fog')` against
+     `bool get resistsBeam => id == 'fog'`. They can never fail.
+
+  Also do not assume `implementation_plan.md`'s per-task `Not started`
+  labels reflect reality — reconcile against actual files first
+  (`AUD-008`'s original lesson, which recurred in `AUD-016`).
 
 ## 3. What is implemented and verified
 
@@ -165,6 +185,36 @@ closed — see `docs/audit.md` for retest evidence.
 
 Cycle-by-cycle history lives in `STATE.md` → `LOG`. This section is for
 narrative handoff needing more than one line.
+
+### 2026-09-04 18:20 +05:30 — c7: first device run; two critical defects found and fixed; merged to main
+
+Ran the game on physical hardware for the first time in the project's life
+(Samsung SM-S711B, Android 16). Three things came out of it that nothing in
+the repo could have told us.
+
+**The Android build had been broken since the repurpose.** `google_mobile_ads
+6.0.0` calls `configurations.all`, removed in Gradle 9.3.1, so every
+`assembleDebug` died configuring the plugin. Nobody knew, because nothing had
+ever built for Android — the suite, the analyzer and the Windows build all
+bypass that path. The owner's decision to defer ads is what unblocked it:
+`lib/core/monetization.dart` turned out to be imported by nothing, a fully
+orphaned file whose only live effect was breaking the build.
+
+**`AUD-019` — the entire game was untappable.** The shell put the shared
+`GameWidget` and go_router's routed `child` in one `Stack`; go_router hands a
+full-size `Navigator` as that child, which sat on top and swallowed every
+pointer event. The game rendered perfectly, booted clean, passed 62 tests and
+responded to nothing. Fixed with `IgnorePointer`.
+
+**`AUD-020` — no level could be started.** The Loadout demanded exactly 6
+tools; level 1 offers 3. `ADR-008` caps the requirement at what the level
+actually offers.
+
+**`AUD-021` (open)** — with those two fixed, a battle now loads, but with no
+HUD. That is the next action.
+
+Merged to `main` as `54eaee2`, deliberately as `BLOCKED` rather than `GREEN`:
+the game is not playable yet and the state file should not pretend otherwise.
 
 ### 2026-09-04 10:30 +05:30 — c5: GNHF stopped, analyzer cleared, app shell written
 
