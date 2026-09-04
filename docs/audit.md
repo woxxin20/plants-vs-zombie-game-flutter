@@ -376,7 +376,7 @@ Required checks:
 
 ### `AUD-011` — `lib/core/tokens.dart` builds `dart:ui.TextStyle` instead of `package:flutter/painting.dart`'s `TextStyle`, breaking every HUD/world screen that consumes `T.*`
 
-- **Status:** Open
+- **Status:** Closed
 - **Severity:** Medium
 - **Detected:** 2026-09-03T18:45+05:30, c2 planning pass
 - **Source breached:** `lib/core/tokens.dart`'s own doc comment ("Deliberately imports `dart:ui` and `package:flutter/painting.dart` only") — the file only imports `dart:ui`, so `TextStyle` in the `T` class resolves to `dart:ui.TextStyle`, which is a different, more restrictive type than the `package:flutter/painting.dart` `TextStyle` that `Text`/`DefaultTextStyle` and every world widget expect.
@@ -387,10 +387,15 @@ Required checks:
 - **Impact:** Blocks the `STATE.md` goal "`flutter analyze` clean across `lib/`"; 6 of 7 world screens cannot compile.
 - **Likely cause:** Copy-paste of the `TextStyle` builder without importing `package:flutter/painting.dart` (or `package:flutter/widgets.dart`), so the analyzer picked the only `TextStyle` in scope (`dart:ui`'s).
 - **Remediation task:** Reconciles `TASK-008` (file is `lib/core/tokens.dart` in reality, not the planned `lib/core/theme.dart` — naming drift, no action needed beyond noting it here and in `implementation_plan.md`). c2's assignment (tokens.dart import swap only) returned `IMPLEMENTATION_BLOCKED` from Cursor (see `.ai/inbox/cursor-evidence.md`): the 1-file scope missed two consumer files that also declare their own `TextStyle` symbol. c3 re-scoped to a verified 3-file fix — `lib/core/tokens.dart` (import swap), `lib/game/worlds/world_widgets.dart` (`hide TextStyle` + painting import so its own `TextStyle?` fields agree with `T.*`), and `lib/game/components/hud/hud_paint.dart` (`HudLabel` accepts painting's `TextStyle`, converts to `dart:ui.TextStyle` via the SDK's `TextStyle.getTextStyle()` before `ParagraphBuilder.pushStyle`). Planner applied this diff locally, ran `flutter analyze`/`flutter test`, confirmed 56→34 issues with zero TextStyle-related errors remaining, then reverted (planner does not commit code) — reassigned to Cursor via `.ai/inbox/gnhf-assignment.md` (c3).
-- **Owner/due:** Cursor implementer, immediately (next slice).
-- **Workaround:** None — every affected screen fails to compile until fixed.
-- **Retest evidence:** 2026-09-04 (c3, planner verification, reverted before handoff) — applying the 3-file diff drops `flutter analyze` from 56 to 34 issues; all `argument_type_not_assignable`/`copyWith`/TextStyle-const errors gone; `flutter test` still 34/34 green. Formal closure pending Cursor's own commit + evidence file.
-- **Closure/acceptance owner:** Pending Cursor's implementation.
+- **Owner/due:** Cursor implementer — done.
+- **Workaround:** None — was blocking every affected screen from compiling.
+- **Retest evidence:** 2026-09-04 (c4 planning pass) — Cursor applied the exact
+  3-file diff and committed it (`8387953`, `.ai/inbox/cursor-evidence.md`).
+  Planner reran `flutter analyze` on the current tree: **34 issues**, zero
+  `argument_type_not_assignable`/`copyWith`/TextStyle-related errors anywhere
+  in `lib/`. `flutter test` — all 34 tests green.
+- **Closure/acceptance owner:** Claude planner, 2026-09-04 (c4) — confirmed
+  fixed and committed.
 
 ### `AUD-013` — `const Vector2(...)` used across five world screens, but `vector_math`'s `Vector2` has no `const` constructor
 
@@ -422,10 +427,18 @@ Required checks:
 - **Expected:** `lib/app.dart` exists and defines `PrismDefenseApp` (a `WidgetsApp` shell wiring the worlds/router — `TASK-007`'s actual remaining scope); `right_panel_component.dart` imports `package:flame/events.dart` for `TapCallbacks`/`TapUpEvent`.
 - **Impact:** Blocks full `flutter analyze` clean and app boot even after `AUD-011` is fixed; out of scope for the c2 assignment, which targets only the highest-leverage single-file fix.
 - **Likely cause:** `TASK-007` (app shell) not yet started; a missing import in `right_panel_component.dart`.
-- **Remediation task:** Next planning slice after `AUD-011`/`TASK-008` lands — likely `TASK-007` (create `lib/app.dart`) followed by the `right_panel_component.dart` import fix.
-- **Owner/due:** Claude planner, next cycle.
+- **Remediation task:** c4 assigns the smallest sub-slice — the
+  `right_panel_component.dart` missing-import fix (`.ai/inbox/gnhf-assignment.md`,
+  reduces 34→31) — to Cursor this cycle. The `lib/app.dart`/`PrismDefenseApp`
+  piece (`TASK-007`'s real remaining scope, 3 of the 12 issues) and the two
+  minor lints (`tray_slot_component.dart` unused field,
+  `light_vs_shadow_game.dart` `unnecessary_import`/`must_call_super`) stay
+  deferred to a future cycle — kept separate because `lib/app.dart` is a real
+  widget (production code, bigger surface) not a mechanical import fix.
+- **Owner/due:** Cursor implementer (import fix, immediately); Claude planner
+  (`lib/app.dart` + lints, future cycle).
 - **Workaround:** None needed — tracked for sequencing only.
-- **Retest evidence:** Pending.
+- **Retest evidence:** Pending (import fix assigned this cycle, not yet run).
 - **Closure/acceptance owner:** Pending.
 
 ### Finding register
@@ -442,18 +455,18 @@ Required checks:
 | `AUD-008` | Medium | Closed | This audit's brief vs reality | Reconcile plan + fix `Curves` import | Solo dev | Confirmed fixed (c2) |
 | `AUD-009` | High | Closed | Engineering practice | Commit working tree checkpoint | Solo dev | Confirmed committed (c1/c2) |
 | `AUD-010` | Info | Accepted risk | Project directive | None (covered by `AUD-009`) | Solo dev | N/A |
-| `AUD-011` | Medium | Open | `lib/core/tokens.dart` vs its own doc comment | Re-scoped to 3 files, verified, reassigned to Cursor as `TASK-008` (c3) | Cursor / immediately | Planner-verified, Cursor pending |
-| `AUD-012` | Low | Open | Incomplete `TASK-007`; missing import | Next planning slice, `TASK-007` | Claude planner / next cycle | Pending |
+| `AUD-011` | Medium | Closed | `lib/core/tokens.dart` vs its own doc comment | 3-file fix, `TASK-008`, landed by Cursor (`8387953`) | Cursor — done | Confirmed: analyze 34, tests 34/34 (c4) |
+| `AUD-012` | Low | Open | Incomplete `TASK-007`; missing import | Import sub-slice assigned to Cursor (c4, `.ai/inbox/gnhf-assignment.md`); `lib/app.dart` + 2 lints deferred | Cursor (import) / Claude planner (rest), next cycle | Pending |
 | `AUD-013` | Low | Open | `const Vector2(...)` has no const constructor in `vector_math` | Next planning slice, mechanical const removal | Claude planner / next cycle | Pending |
 
 ## 15. Gate decision
 
 - **Decision:** `No-go` (expected — `PH-00` exit gate is not yet met: `flutter analyze` is not clean).
 - **Scope of decision:** `PH-00` exit gate readiness.
-- **Blocking findings:** `AUD-011` (Medium — re-scoped this cycle to a verified 3-file fix, 22 TextStyle-related errors, reassigned to Cursor); `AUD-012` (Low — 12 remaining errors, `lib/app.dart` missing + one import, next planning slice); `AUD-013` (Low — 22 pre-existing `const Vector2` errors, newly surfaced while verifying `AUD-011`, next planning slice); `AUD-002`, `AUD-005`, `AUD-007` remain open and also block `PH-00`'s exit gate.
+- **Blocking findings:** `AUD-012` (Low — `right_panel_component.dart` import sub-slice assigned to Cursor this cycle, `lib/app.dart`+2 lints still deferred); `AUD-013` (Low — 22 pre-existing `const Vector2` errors, deferred); `AUD-002`, `AUD-005`, `AUD-007` remain open and also block `PH-00`'s exit gate. `AUD-011` is now closed (confirmed fixed and committed).
 - **Accepted risks:** `AUD-001`, `AUD-003`, `AUD-010` — all Low/Info, deliberate and documented substitutions.
-- **Required follow-up:** Land `TASK-008` (`AUD-011`, re-scoped) via Cursor this cycle; next planning cycles assign `TASK-007`/`AUD-012` and the `AUD-013` const fix; then close `AUD-002`/`AUD-005`/`AUD-007` before claiming the `PH-00` exit gate.
-- **Decision owner/date:** Solo developer (repo owner), 2026-09-03.
+- **Required follow-up:** Land the `right_panel_component.dart` import fix (`AUD-012` sub-slice) via Cursor this cycle; next planning cycles assign `lib/app.dart`/`TASK-007` and the `AUD-013` const fix; then close `AUD-002`/`AUD-005`/`AUD-007` before claiming the `PH-00` exit gate.
+- **Decision owner/date:** Solo developer (repo owner), 2026-09-04.
 
 ## 16. Audit history
 
@@ -462,3 +475,4 @@ Required checks:
 | 2026-09-03 | Baseline (pre-`PH-00`) | No-go | 0/1/4/2 | Claude Sonnet 5 | First audit. Found the working tree already contains partial, uncommitted, unverified game code beyond what this audit was briefed to expect — see `AUD-008`. Most urgent finding is `AUD-009` (uncommitted work, High). |
 | 2026-09-03 (c2) | `PH-00` in progress | No-go | 0/0/2/1 | Claude Sonnet 5 (planner) | `AUD-008`/`AUD-009` closed (fixed/committed). `flutter analyze` now shows 49 errors from newer code — root-caused to one file (`AUD-011`, assigned this cycle) plus a small remainder (`AUD-012`, next cycle). |
 | 2026-09-04 (c3) | `PH-00` in progress | No-go | 0/0/2/2 | Claude Sonnet 5 (planner) | Cursor tried c2's 1-file `AUD-011` fix, returned `IMPLEMENTATION_BLOCKED` (2 consumer files also need edits). Planner traced every consumer, verified a 3-file fix locally (56→34 issues, reverted before handoff), reassigned to Cursor. Surfaced a new pre-existing defect (`AUD-013`, `const Vector2` has no const constructor) while verifying — it accounts for the gap between the c2 assignment's optimistic ≤12 target and the real 34. |
+| 2026-09-04 (c4) | `PH-00` in progress | No-go | 0/0/1/2 | Claude Sonnet 5 (planner) | Cursor landed the c3 3-file `AUD-011` fix (commit `8387953`) — reran `flutter analyze` (34 issues, matches evidence) and `flutter test` (34/34) to confirm, closed `AUD-011`. Assigned the smallest remaining `AUD-012` piece — a missing `package:flame/events.dart` import in `right_panel_component.dart` (34→31) — to Cursor; `lib/app.dart`/`TASK-007` and two minor lints stay deferred as a separate, larger slice. |

@@ -3,7 +3,7 @@ document: Active Project Memory and Handoff
 authority: Short-lived current state, recent work, blockers, bugs, and next action
 status: Active
 owner: "Solo developer (repo owner)"
-last_updated: "2026-09-03 18:50 +05:30"
+last_updated: "2026-09-04 00:30 +05:30"
 ---
 
 # Memory — LIGHT vs SHADOW: Prism Defense
@@ -12,9 +12,10 @@ last_updated: "2026-09-03 18:50 +05:30"
 > [`STATE.md`](../STATE.md) at repo root — agent-owned, whole-file rewrite per
 > [`.ai/STATE-PROTOCOL.md`](../.ai/STATE-PROTOCOL.md). This file keeps only
 > durable handoff narrative that STATE.md's 130-line cap and 5-entry log have
-> no room for. `AUD-009` (uncommitted work) and the original `AUD-008`
-> (`Curves` error) are now closed — the repo is committed and that specific
-> bug is fixed. Current blocker is `AUD-011`/`AUD-012` (below).
+> no room for. `AUD-009` (uncommitted work), the original `AUD-008`
+> (`Curves` error), and `AUD-011` (tokens.dart `TextStyle`) are now closed —
+> the repo is committed, that bug is fixed and confirmed (`flutter analyze`
+> 34, `flutter test` 34/34). Current blocker is `AUD-012` (below).
 
 This is the project's **working memory**, not a specification. It answers:
 "Where are we now, what changed, what is blocked, and what should happen next?"
@@ -47,20 +48,21 @@ authoritative source remains unchanged and the mismatch must be recorded in
 - **Current objective:** Get a `flutter analyze`-clean, test-covered
   `FlameGame` bootstrap running landscape-locked at 60fps (`PH-00` exit
   gate, `docs/phases.md` §4), then proceed to `PH-01`/`PH-02`.
-- **Active task:** `TASK-008` — fix `lib/core/tokens.dart`'s `TextStyle`
-  import (`AUD-011`), assigned to Cursor via `.ai/inbox/gnhf-assignment.md`
-  this cycle (c2). Next planning slice after that lands is `TASK-007`
-  (`lib/app.dart` is missing — `AUD-012`).
-- **Last verified version:** Working tree is committed; `HEAD` is `3f8a660`
-  on `overnight/gnhf-prism-defense-20260903`. `AUD-009` (uncommitted work) is
-  closed.
-- **Overall health:** On track for `PH-00`. Nearly all `lib/` files for
-  `PH-00`/`PH-01`/`PH-02` already exist (see `find lib -type f`); the
-  remaining work is fixing `flutter analyze` (56 issues, 44 root-caused to
-  one file — `AUD-011`) and writing `lib/app.dart` (`AUD-012`), not writing
-  net-new features from scratch. Do not assume `implementation_plan.md`'s
-  per-task `Not started` labels reflect reality — reconcile against actual
-  files before starting a task (see `AUD-008`'s original lesson).
+- **Active task:** `AUD-012` sub-slice — add the missing
+  `package:flame/events.dart` import to
+  `lib/game/components/hud/right_panel_component.dart`, assigned to Cursor
+  via `.ai/inbox/gnhf-assignment.md` this cycle (c4). `TASK-008`/`AUD-011`
+  landed and is confirmed closed. `lib/app.dart`/`TASK-007` (the rest of
+  `AUD-012`) stays deferred — separate, larger slice.
+- **Last verified version:** Working tree is committed; `HEAD` is `8387953`
+  on `overnight/gnhf-prism-defense-20260903` (includes the `TASK-008` 3-file
+  fix). `AUD-009` (uncommitted work) and `AUD-011` are both closed.
+- **Overall health:** On track for `PH-00`. `flutter analyze` dropped from 56
+  to 34 issues after `TASK-008` landed; remaining 34 split `AUD-012` (12,
+  partially assigned this cycle) and `AUD-013` (22, deferred). Do not assume
+  `implementation_plan.md`'s per-task `Not started` labels reflect reality —
+  reconcile against actual files before starting a task (see `AUD-008`'s
+  original lesson).
 
 ## 3. What is implemented and verified
 
@@ -85,17 +87,17 @@ implemented/verified here.
 ## 5. Exact next actions
 
 The single next action lives in `STATE.md` → `NEXT ACTION`: hand off to the
-Cursor implementer role via `.ai/inbox/gnhf-assignment.md` to fix
-`lib/core/tokens.dart:9` (`TASK-008`/`AUD-011`). After that lands and is
-reviewed, the next planning slice is `TASK-007` (`lib/app.dart` is missing —
-`AUD-012`).
+Cursor implementer role via `.ai/inbox/gnhf-assignment.md` to add
+`import 'package:flame/events.dart';` to `right_panel_component.dart`
+(`AUD-012` sub-slice). After that lands, the next planning slice is
+`lib/app.dart`/`TASK-007` (the rest of `AUD-012`), then `AUD-013`'s `const
+Vector2` mechanical fix.
 
 ## 6. Blockers and decisions needed
 
 | ID | Blocker/decision | Impact | Owner | Next action/due | Blocks |
 | --- | --- | --- | --- | --- | --- |
-| `AUD-011` | `lib/core/tokens.dart` builds `dart:ui.TextStyle` instead of `package:flutter/painting.dart`'s, breaking 6 world screens (44 of 56 `flutter analyze` issues) | Blocks `flutter analyze` clean (`PH-00` exit gate) | Cursor implementer | Swap the import, see `.ai/inbox/gnhf-assignment.md` | `PH-00` exit gate |
-| `AUD-012` | `lib/main.dart` imports missing `lib/app.dart`; `right_panel_component.dart` missing `package:flame/events.dart` import; 2 minor lints | Blocks `flutter analyze` clean and app boot | Claude planner | Next planning cycle after `AUD-011` lands | `PH-00` exit gate |
+| `AUD-012` | `lib/main.dart` imports missing `lib/app.dart`; `right_panel_component.dart` missing `package:flame/events.dart` import; 2 minor lints | Blocks `flutter analyze` clean and app boot | Cursor (import, this cycle) / Claude planner (rest) | Import fix assigned c4, `.ai/inbox/gnhf-assignment.md`; `lib/app.dart` next cycle | `PH-00` exit gate |
 | `AUD-002` | No offline font solution exists (spec mandates GoogleFonts, product forbids runtime fetch) | Blocks `PH-00` exit gate; all text currently has no defined typeface | Solo developer | Source/license Orbitron, Inter, JetBrainsMono TTFs and bundle them (`TASK-011`) | `PH-00` exit gate |
 | `AUD-005` | Native app id/bundle id/display name still say `plants_vs_zombie` | Blocks any store-facing build; visible identity mismatch even in dev | Solo developer | Retarget Android `applicationId`/`namespace`/label and iOS `PRODUCT_BUNDLE_IDENTIFIER` (`TASK-012`) | `PH-00` exit gate |
 
@@ -108,8 +110,8 @@ closed — see `docs/audit.md` for retest evidence.
 
 | Finding | User/system effect | Workaround | Fix task | Status |
 | --- | --- | --- | --- | --- |
-| `AUD-011` | `flutter analyze` fails (44 errors) across 6 world screens | Avoid relying on any `lib/game/worlds/*.dart` screen until fixed | `TASK-008` — assigned to Cursor this cycle | Open |
-| `AUD-012` | `flutter analyze` fails (5 more errors); app cannot boot (`lib/app.dart` missing) | None — app entry point is incomplete | Next planning cycle (`TASK-007`) | Open |
+| `AUD-011` | `flutter analyze` failed (44 errors) across 6 world screens | N/A — fixed | `TASK-008` — landed by Cursor (`8387953`), confirmed c4 | Closed |
+| `AUD-012` | `flutter analyze` fails (12 issues); app cannot boot (`lib/app.dart` missing) | None — app entry point is incomplete | Import sub-slice assigned c4; `lib/app.dart`/`TASK-007` next cycle | Open |
 | `AUD-002` | No bundled typeface; text falls back to system default | Ship with system font as a last resort if unresolved | `TASK-011` | Open |
 | `AUD-005` | App id/label still `plants_vs_zombie` | None needed for local dev only | `TASK-012` | Open |
 | `AUD-006` | No AdMob/IAP ids yet | Use Google test ad unit ids in dev, never ship them | `TASK-040`, `TASK-041` | Open, deferred to `PH-05` |
@@ -144,18 +146,49 @@ closed — see `docs/audit.md` for retest evidence.
 
 | Date/time | Check | Result | Scope/environment | Audit link |
 | --- | --- | --- | --- | --- |
+| 2026-09-04 (c4) | `flutter analyze` | 34 issues (down from 56) | Local Windows, `HEAD` `8387953` | `AUD-011` (closed), `AUD-012`/`AUD-013` (open) |
+| 2026-09-04 (c4) | `flutter test` | 34/34 pass | Local Windows | — |
 | 2026-09-03T11:04Z | `flutter analyze` | Fail — 1 error, 1 warning, 1 info | Local Windows, current `lib/` | `AUD-008` |
 | 2026-09-03 | `flutter pub get` | Pass | Local Windows | §12 test/build evidence |
-| 2026-09-03 | `find test -type f` | 0 files | Local | `AUD-007` |
-
-This session (docs-only pass) did not run `flutter test` or `flutter build`
-— neither is meaningful yet (`AUD-007`: no tests exist; no `main.dart`
-entry point exists to build from).
 
 ## 11. Recent session log
 
 Cycle-by-cycle history lives in `STATE.md` → `LOG`. This section is for
 narrative handoff needing more than one line.
+
+### 2026-09-04 00:30 +05:30 — c4 planning: confirmed TASK-008 landed, assigned the smallest AUD-012 sub-slice
+
+- **Request/goal:** Act as the `claude-planner` role for this cycle.
+  STATE.md's CYCLE marker was still `2 (open)` at session start (orphaned —
+  the c3 Cursor implementation cycle never closed it), so reconciliation ran
+  first: `git log`/`git status`/`.ai/inbox/` review, per protocol §4.
+- **Findings:** Reconciliation showed four commits landed after STATE.md's
+  recorded `3f8a660`, the last being `8387953` — Cursor's `TASK-008` 3-file
+  `TextStyle` fix (`.ai/inbox/cursor-evidence.md`, `IMPLEMENTATION_READY`).
+  Reran `flutter analyze` (34 issues, matches evidence) and `flutter test`
+  (34/34) to confirm before trusting the claim. Closed `AUD-011`. Of the
+  remaining 34, picked the single smallest unfinished piece:
+  `right_panel_component.dart` uses `TapCallbacks`/`TapUpEvent` without
+  importing `package:flame/events.dart` (confirmed by grep — all 10 other
+  `TapCallbacks` consumers in the repo import it; this file is the sole
+  outlier) — a 1-line fix closing 3 of `AUD-012`'s 12 issues (34→31).
+- **Changed:** `docs/audit.md` (closed `AUD-011`, updated `AUD-012` with the
+  sub-slice scope, updated register/gate decision/history),
+  `docs/implementation_plan.md` (`TASK-008` marked Done, plan-change-log
+  entry), `docs/memory.md` (this file), `STATE.md`, `.ai/inbox/gnhf-assignment.md`
+  (rewritten — new Cursor handoff), `.ai/inbox/cursor-evidence.md` (emptied,
+  consumed into the docs above per protocol §7).
+- **IDs:** `AUD-011` closed; `TASK-008` Done; `AUD-012` sub-slice assigned,
+  parent still Open.
+- **Verified:** `flutter analyze` (34, evidence for closing `AUD-011`),
+  `flutter test` (34/34), `git log 3f8a660..HEAD`/`git status` (clean, 4
+  commits recovered), grep across `lib/` confirming the import gap is
+  file-scoped.
+- **Not verified:** No code was changed this pass (planner role does not
+  implement); the new import fix is unverified until Cursor lands it.
+- **Next:** Cursor implements the `right_panel_component.dart` import fix
+  per `.ai/inbox/gnhf-assignment.md`; next planning cycle picks up
+  `lib/app.dart`/`TASK-007` (rest of `AUD-012`) or `AUD-013`.
 
 ### 2026-09-03 18:50 +05:30 — c2 planning: root-caused the analyze failure, assigned TASK-008 to Cursor
 
