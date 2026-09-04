@@ -167,6 +167,7 @@ section becomes meaningful starting at `PH-00`'s exit gate (empty-scene
 
 | Date | Check/command | Scope/environment | Result | Duration/notes | Finding |
 | --- | --- | --- | --- | --- | --- |
+| 2026-09-04 (c6) | `flutter test` | Local Windows, `HEAD` `d39b6b0` | Pass — 62/62 after `PH-02`..`PH-04` + `AUD-017` fix | Re-run by the lead on every phase, never taken from the worker's report | `AUD-017` found here |
 | 2026-09-04 (c6) | `flutter analyze` | Local Windows, `HEAD` `9cc0c49` | Pass — `No issues found!` | Re-run by the lead, not taken from the worker's report | None |
 | 2026-09-04 (c6) | `flutter test` | Local Windows, `HEAD` `9cc0c49` | Pass — 42/42 (+7 `PH-01` gate tests) | Re-run by the lead; diff verified test-only (1 file, +285 lines, zero production change) | `PH-01` gate 6/7, gate 3 partial |
 | 2026-09-03 | `flutter --version` | Local Windows | Pass — 3.47.0 stable | Briefed baseline, not re-run this pass | None |
@@ -461,6 +462,8 @@ Required checks:
 | `AUD-012` | Low | Closed | Incomplete `TASK-007`; missing import | Import fix (`e8a179d`, Cursor); `lib/app.dart` shell + 2 lints (`adf7676`, `733fb55`, Claude) | Done | Confirmed: analyze clean, tests 35/35 (c5) |
 | `AUD-013` | Low | Closed | `const Vector2(...)` has no const constructor in `vector_math` | Mechanical const removal across 5 world files (`adf7676`) | Done | Confirmed: analyze 31 → 6 (c5) |
 | `AUD-014` | Medium | Closed | Flame `OpacityEffect` contract | `FadeableRender` mixin on the 4 hand-painted fade targets (`733fb55`) | Done | Confirmed: boot test passes (c5) |
+| `AUD-017` | Medium | Closed | `PRD-FR-015`; QA #10 | Read `camera.world` (`ed0c0f9`) + regression test (`d39b6b0`) | Done | Confirmed: fails without fix, 62/62 with (c6) |
+| `AUD-018` | Low | Open | Spec §23 | Drop `clearAll()` when audio assets land | `PH-04` audio owner | Pending assets |
 | `AUD-016` | Medium | Closed | `architecture.md` §6 vs the tree | `ADR-007` — accept implemented design, drop `TASK-021` | Done | Confirmed: `ADR-007` recorded (c6) |
 | `AUD-015` | Medium | Closed | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Cursor / PH-02 | Closed 2026-09-04 — `integration_test/uj01_test.dart` green on Windows |
 
@@ -508,6 +511,42 @@ Required checks:
 - **Workaround:** N/A.
 - **Retest evidence:** 2026-09-04 (c6) — `ADR-007` recorded; `architecture.md` module table amended; `TASK-021` dropped from the plan. `flutter analyze` clean, `flutter test` 42/42 at `9cc0c49`.
 - **Closure/acceptance owner:** Repo owner, 2026-09-04 (c6).
+
+### `AUD-017` — App-lifecycle handler read `game.world`, which is never the swapped-in world (QA #10 half dead)
+
+- **Status:** Closed — fixed `ed0c0f9`, regression test `d39b6b0`.
+- **Severity:** Medium
+- **Detected:** 2026-09-04 (c6), lead review of the `PH-02` delivery.
+- **Source breached:** `docs/prd.md` `PRD-FR-015` (app lifecycle); spec §24 QA checklist #10.
+- **Affected users/data/components:** `lib/app.dart` `didChangeAppLifecycleState`, and through it every battle that gets backgrounded.
+- **Evidence:** `FlameGame.world` and `camera.world` are different objects; `swapWorld()` sets the camera's while `FlameGame.world` keeps the default `World` for the life of the game. Proven with a probe on a real game instance: `game.world = World` (`is _Marker` → **false**) versus `game.camera.world = _Marker` (`is _Marker` → **true**). The shipped code read `_game.world`, so `if (world is BattleWorld)` was false in every case — `BattleWorld.pause()` never ran on backgrounding, and the "stay paused behind the overlay" guard never ran on resume.
+- **Reproduction:** At `f7d52fd`, background the app during a battle: the engine pauses but the battle's own state never becomes `GameState.paused`.
+- **Expected:** Backgrounding pauses the engine **and** the battle simulation; resuming does not silently un-pause a battle the player paused deliberately.
+- **Impact:** Half of QA #10 was inoperative. Worse, it was **invisible to the delivered test**, which asserts only `game.paused` — satisfied by `pauseEngine()` whether or not the `BattleWorld` branch is reachable — and which ran on `/home`, where no `BattleWorld` exists at all. A green suite is not evidence that a branch is reachable.
+- **Likely cause:** The `game.world` / `camera.world` distinction is genuinely counter-intuitive. It is documented in `AGENTS.md` §6 and `STATE.md` COST NOTES and the worker was told about it in its assignment, and it was still hit — the warning is too far from the code it protects.
+- **Remediation task:** `ed0c0f9` reads `_game.camera.world` in both branches, with a comment at the site saying why. `d39b6b0` adds a regression test that pumps `PrismDefenseApp` (which owns the observer), swaps in a real `BattleWorld`, asserts it is not already paused, then asserts it pauses.
+- **Owner/due:** Claude (lead) — done 2026-09-04.
+- **Workaround:** N/A.
+- **Retest evidence:** Verified both directions: reverting `camera.world` → `world` fails the new test and only that test; restoring it passes. `flutter analyze` clean, `flutter test` 62/62 at `d39b6b0`.
+- **Closure/acceptance owner:** Claude (lead), 2026-09-04 (c6).
+
+### `AUD-018` — `GameAudio.setSoundEnabled` clears the audio cache instead of only setting volume
+
+- **Status:** Open — latent, cannot trigger today.
+- **Severity:** Low
+- **Detected:** 2026-09-04 (c6), lead review of the `PH-04` delivery.
+- **Source breached:** Spec §23 (audio); `docs/rules.md` §9 performance budgets.
+- **Affected users/data/components:** `lib/core/audio.dart` `setSoundEnabled`.
+- **Evidence:** The method calls `await FlameAudio.audioCache.clearAll()` before setting BGM volume. Clearing the cache discards every preloaded clip; it is not a volume operation. The whole body is behind `if (!_ready) return;` and `_ready` is permanently `false` while `assets/audio/` is empty, so nothing happens today.
+- **Reproduction:** Not reproducible until audio assets ship and `init()` sets `_ready`. At that point, toggling sound off then on would force a re-load of all eight clips, likely with an audible stall on the first cue after the toggle.
+- **Expected:** Toggling sound sets volume (or gates playback) and leaves the preloaded cache intact.
+- **Impact:** None today. A latent stutter the moment the blocked audio assets arrive — and it will look like an asset problem rather than a settings-code problem, which is what makes it worth recording now.
+- **Likely cause:** Written against an empty `assets/audio/`, so the line could never be observed to misbehave.
+- **Remediation task:** Drop the `clearAll()` call when the audio assets land and this path first becomes live; fold into the `PH-04` audio completion work.
+- **Owner/due:** Whoever completes `PH-04`'s audio half, once assets exist.
+- **Workaround:** N/A — inert.
+- **Retest evidence:** Pending assets.
+- **Closure/acceptance owner:** Pending.
 
 ## 15. Gate decision
 
