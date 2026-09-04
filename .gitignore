@@ -53,3 +53,5 @@ app.*.map.json
 .ai/inbox/*
 !.ai/inbox/.gitkeep
 _pgk_tmp/
+.codegraph/
+android/build/

@@ -26,7 +26,14 @@ class ToastComponent extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
-    add(_label = HudLabel(_message, style: T.label, color: C.error, anchor: Anchor.center));
+    add(
+      _label = HudLabel(
+        _message,
+        style: T.label,
+        color: C.error,
+        anchor: Anchor.center,
+      ),
+    );
     final fade = D.secs(D.place);
     final hold = math.max(D.secs(D.toast) - fade, 0.0);
     add(

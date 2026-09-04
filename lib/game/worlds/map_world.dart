@@ -28,7 +28,7 @@ class MapWorld extends World with HasGameReference<LightVsShadowGame> {
 
   static const _cols = 5;
   static const _rows = 4;
-  static const _cardSize = Vector2(96, 64);
+  static final _cardSize = Vector2(96, 64);
   static const _gap = S.x2;
 
   @override
@@ -68,7 +68,9 @@ class MapWorld extends World with HasGameReference<LightVsShadowGame> {
     final gridH = _rows * _cardSize.y + (_rows - 1) * _gap;
     final origin = Vector2(
       (viewSize.x - gridW) / 2,
-      S.screenPad + 52 + (viewSize.y - S.screenPad - 52 - S.screenPad - gridH) / 2,
+      S.screenPad +
+          52 +
+          (viewSize.y - S.screenPad - 52 - S.screenPad - gridH) / 2,
     );
 
     for (var r = 0; r < _rows; r++) {
@@ -81,7 +83,9 @@ class MapWorld extends World with HasGameReference<LightVsShadowGame> {
             stars: save.starsFor(id),
             locked: id > save.maxUnlocked,
             onSelect: onSelect,
-            position: origin + Vector2(c * (_cardSize.x + _gap), r * (_cardSize.y + _gap)),
+            position:
+                origin +
+                Vector2(c * (_cardSize.x + _gap), r * (_cardSize.y + _gap)),
           ),
         );
       }
@@ -92,7 +96,7 @@ class MapWorld extends World with HasGameReference<LightVsShadowGame> {
 class _CoinChip extends PositionComponent {
   _CoinChip({required this.coins, required Vector2 position})
     : super(
-        size: const Vector2(112, 32),
+        size: Vector2(112, 32),
         position: position,
         anchor: Anchor.topRight,
       );

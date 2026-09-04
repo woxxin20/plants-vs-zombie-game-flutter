@@ -15,8 +15,10 @@ import 'package:flame/effects.dart';
 import '../../core/tokens.dart';
 import '../../data/models.dart';
 import 'backdrop_layers.dart' show P;
+import 'fadeable.dart';
 
-class ShadowComponent extends PositionComponent with CollisionCallbacks {
+class ShadowComponent extends PositionComponent
+    with CollisionCallbacks, FadeableRender {
   ShadowComponent({
     required this.def,
     required this.lane,
@@ -69,18 +71,18 @@ class ShadowComponent extends PositionComponent with CollisionCallbacks {
       add(
         OpacityEffect.to(
           0.6,
-          EffectController(
-            duration: 1.2,
-            alternate: true,
-            infinite: true,
-          ),
+          EffectController(duration: 1.2, alternate: true, infinite: true),
         ),
       );
     }
   }
 
   /// Applies beam damage. Returns true when this hit killed it.
-  bool takeBeamDamage(double amount, {required bool slow, required double now}) {
+  bool takeBeamDamage(
+    double amount, {
+    required bool slow,
+    required double now,
+  }) {
     if (_dying) return false;
     hp -= amount;
     if (slow) slowUntil = now + kFrostSlowDuration;
@@ -159,7 +161,12 @@ class ShadowComponent extends PositionComponent with CollisionCallbacks {
     switch (def.id) {
       case 'bucket':
         // Helmet plate across the top of the head.
-        final rect = Rect.fromLTWH(cx - r * 0.8, cy - r * 0.95, r * 1.6, r * 0.6);
+        final rect = Rect.fromLTWH(
+          cx - r * 0.8,
+          cy - r * 0.95,
+          r * 1.6,
+          r * 0.6,
+        );
         canvas.drawRRect(
           RRect.fromRectAndRadius(rect, const Radius.circular(3)),
           Paint()..color = C.mirrorMetal,

@@ -167,6 +167,11 @@ section becomes meaningful starting at `PH-00`'s exit gate (empty-scene
 
 | Date | Check/command | Scope/environment | Result | Duration/notes | Finding |
 | --- | --- | --- | --- | --- | --- |
+| 2026-09-04 (c6) | `flutter test` | Local Windows, `HEAD` `d39b6b0` | Pass — 62/62 after `PH-02`..`PH-04` + `AUD-017` fix | Re-run by the lead on every phase, never taken from the worker's report | `AUD-017` found here |
+| 2026-09-04 (c6) | `flutter analyze` | Local Windows, `HEAD` `9cc0c49` | Pass — `No issues found!` | Re-run by the lead, not taken from the worker's report | None |
+| 2026-09-04 (c7) | `flutter build apk --debug` + install + launch | **SM-S711B, Android 16 (API 36), real hardware** | Pass — launches, forces `ROTATION_90` from portrait with auto-rotate on, no Dart exception in logcat | First time this project has ever run on a device. Android build was **broken** until `google_mobile_ads` was deferred | `AUD-019`, `AUD-020`, `AUD-021` all found here |
+| 2026-09-04 (c7) | `flutter test` | Local Windows, `HEAD` `256e995`+ | Pass — 66/66 | Re-run by the lead | `AUD-019`/`AUD-020` regressions |
+| 2026-09-04 (c6) | `flutter test` | Local Windows, `HEAD` `9cc0c49` | Pass — 42/42 (+7 `PH-01` gate tests) | Re-run by the lead; diff verified test-only (1 file, +285 lines, zero production change) | `PH-01` gate 6/7, gate 3 partial |
 | 2026-09-03 | `flutter --version` | Local Windows | Pass — 3.47.0 stable | Briefed baseline, not re-run this pass | None |
 | 2026-09-03 | `flutter pub get` | Local Windows, rewritten `pubspec.yaml` | Pass — resolved `flame 1.38.2`, `flame_audio 2.12.2`, `flame_riverpod 5.4.21`, `flutter_riverpod 2.6.1`, `go_router 16.3.0`, `hive_ce_flutter 2.3.4`, `google_mobile_ads 6.0.0`, `in_app_purchase 3.3.0` (per brief) | Briefed baseline, not re-run this pass | None |
 | 2026-09-03T11:04Z | `flutter analyze` | Local Windows, current `lib/` (partial, uncommitted code) | Fail — 1 error, 1 warning, 1 info (see §8) | Run live during this audit, ~15s | `AUD-008` |
@@ -321,7 +326,7 @@ Required checks:
 
 ### `AUD-008` — Partial, uncommitted game code and content already exist, contradicting this audit's own briefed baseline; `flutter analyze` fails
 
-- **Status:** Open
+- **Status:** Closed
 - **Severity:** Medium
 - **Detected:** 2026-09-03T11:04Z, baseline audit
 - **Source breached:** This audit's brief stated "NO game code exists yet" and "the only commands actually run so far were `flutter pub get` and `flutter --version`." Neither is accurate as of this snapshot.
@@ -334,12 +339,12 @@ Required checks:
 - **Remediation task:** Reconcile `implementation_plan.md` `TASK-007`..`TASK-032` statuses against actual file contents at the next working session (do not mark `Done` from file presence alone); fix the `Curves` import in `tool_component.dart` (likely missing `import 'package:flutter/animation.dart';` or `package:flame/effects.dart`) as part of whichever task now owns that file.
 - **Owner/due:** Solo developer, immediately (before starting new `PH-00` work, to avoid duplicating or conflicting with whatever produced these files).
 - **Workaround:** None — `flutter analyze` genuinely fails right now.
-- **Retest evidence:** Pending.
-- **Closure/acceptance owner:** Pending.
+- **Retest evidence:** 2026-09-03T18:40+05:30 (c2) — `flutter analyze` no longer reports the `Curves` error in `tool_component.dart:62`, and `light_vs_shadow_game.dart`'s `must_call_super`/`unnecessary_import` are the only survivors from this finding's original evidence. The repo has since grown to 49 errors overall from newer code (`home_world.dart` etc.) — tracked separately as `AUD-011`/`AUD-012`, not a reopen of this finding.
+- **Closure/acceptance owner:** Solo developer, 2026-09-03 (c2) — original defect fixed, superseded by `AUD-011`/`AUD-012` for current state.
 
 ### `AUD-009` — Entire repurposing work is uncommitted; no recovery point exists if the working tree is lost
 
-- **Status:** Open
+- **Status:** Closed
 - **Severity:** High
 - **Detected:** 2026-09-03, baseline audit
 - **Source breached:** `docs/GOVERNANCE.md` change-propagation protocol assumes durable, committed state; general engineering practice against unrecoverable single-copy work.
@@ -353,8 +358,8 @@ Required checks:
 - **Remediation task:** Commit the current working tree (governance kit + `pubspec.yaml`/`pubspec.lock` + all new `lib/`/`assets/` content + the old-file deletions) as a single checkpoint before any further code work proceeds. Not assigned a `TASK-*` id in `implementation_plan.md` because it is a repository-hygiene action, not a product task — flagged here and in `docs/memory.md` as the most urgent next action instead.
 - **Owner/due:** Solo developer, immediately — before the next code-writing session of any kind.
 - **Workaround:** None — the exposure exists until a commit is made.
-- **Retest evidence:** Pending.
-- **Closure/acceptance owner:** Pending.
+- **Retest evidence:** `git log --oneline -5` shows commits `ae7a5b6`, `5d10870`, `3f8a660` on `overnight/gnhf-prism-defense-20260903`, all after `4b4c974`; `git status --short` returns clean at c2 session start (2026-09-03T18:31+05:30).
+- **Closure/acceptance owner:** Solo developer, 2026-09-03 (c1/c2) — working tree committed, no data-loss exposure remains.
 
 ### `AUD-010` — Old Plants-vs-Zombies game removed from the working tree; recoverable only via git history
 
@@ -374,6 +379,73 @@ Required checks:
 - **Retest evidence:** N/A.
 - **Closure/acceptance owner:** Solo developer, 2026-09-03 (accepted as intentional).
 
+### `AUD-011` — `lib/core/tokens.dart` builds `dart:ui.TextStyle` instead of `package:flutter/painting.dart`'s `TextStyle`, breaking every HUD/world screen that consumes `T.*`
+
+- **Status:** Closed
+- **Severity:** Medium
+- **Detected:** 2026-09-03T18:45+05:30, c2 planning pass
+- **Source breached:** `lib/core/tokens.dart`'s own doc comment ("Deliberately imports `dart:ui` and `package:flutter/painting.dart` only") — the file only imports `dart:ui`, so `TextStyle` in the `T` class resolves to `dart:ui.TextStyle`, which is a different, more restrictive type than the `package:flutter/painting.dart` `TextStyle` that `Text`/`DefaultTextStyle` and every world widget expect.
+- **Affected users/data/components:** `lib/core/tokens.dart` (`class T`, method `_s`); consumers `lib/game/worlds/{home_world,loadout_world,map_world,settings_world,shop_world,world_widgets}.dart`.
+- **Evidence:** `flutter analyze` (2026-09-03T18:45+05:30) reports 49 errors; 44 of them are `argument_type_not_assignable`, `undefined_method` (`copyWith`), `const_initialized_with_non_constant_value`, and `const_with_non_const`, all inside the six files listed above, all pointing at a `T.*` style value. `dart:ui.TextStyle` has no `copyWith` and is not const-constructible the way callers expect, which matches every error signature exactly.
+- **Reproduction:** `flutter analyze` — see error list grouped by file; every group traces back to a `style: T.<name>` argument.
+- **Expected:** `T`'s static fields are `package:flutter/painting.dart` `TextStyle` instances so `Text(style: T.h1)`, `T.h1.copyWith(...)`, and const contexts all type-check.
+- **Impact:** Blocks the `STATE.md` goal "`flutter analyze` clean across `lib/`"; 6 of 7 world screens cannot compile.
+- **Likely cause:** Copy-paste of the `TextStyle` builder without importing `package:flutter/painting.dart` (or `package:flutter/widgets.dart`), so the analyzer picked the only `TextStyle` in scope (`dart:ui`'s).
+- **Remediation task:** Reconciles `TASK-008` (file is `lib/core/tokens.dart` in reality, not the planned `lib/core/theme.dart` — naming drift, no action needed beyond noting it here and in `implementation_plan.md`). c2's assignment (tokens.dart import swap only) returned `IMPLEMENTATION_BLOCKED` from Cursor (see `.ai/inbox/cursor-evidence.md`): the 1-file scope missed two consumer files that also declare their own `TextStyle` symbol. c3 re-scoped to a verified 3-file fix — `lib/core/tokens.dart` (import swap), `lib/game/worlds/world_widgets.dart` (`hide TextStyle` + painting import so its own `TextStyle?` fields agree with `T.*`), and `lib/game/components/hud/hud_paint.dart` (`HudLabel` accepts painting's `TextStyle`, converts to `dart:ui.TextStyle` via the SDK's `TextStyle.getTextStyle()` before `ParagraphBuilder.pushStyle`). Planner applied this diff locally, ran `flutter analyze`/`flutter test`, confirmed 56→34 issues with zero TextStyle-related errors remaining, then reverted (planner does not commit code) — reassigned to Cursor via `.ai/inbox/gnhf-assignment.md` (c3).
+- **Owner/due:** Cursor implementer — done.
+- **Workaround:** None — was blocking every affected screen from compiling.
+- **Retest evidence:** 2026-09-04 (c4 planning pass) — Cursor applied the exact
+  3-file diff and committed it (`8387953`, `.ai/inbox/cursor-evidence.md`).
+  Planner reran `flutter analyze` on the current tree: **34 issues**, zero
+  `argument_type_not_assignable`/`copyWith`/TextStyle-related errors anywhere
+  in `lib/`. `flutter test` — all 34 tests green.
+- **Closure/acceptance owner:** Claude planner, 2026-09-04 (c4) — confirmed
+  fixed and committed.
+
+### `AUD-013` — `const Vector2(...)` used across five world screens, but `vector_math`'s `Vector2` has no `const` constructor
+
+- **Status:** Closed
+- **Severity:** Low
+- **Detected:** 2026-09-04T00:00+05:30, c3 planning pass (surfaced while verifying `AUD-011`'s fix)
+- **Source breached:** N/A — pre-existing bug, not a regression from this cycle's work.
+- **Affected users/data/components:** `lib/game/worlds/{home_world,loadout_world,map_world,settings_world,shop_world}.dart` — every `const Vector2(x, y)` / `static const _cardSize = Vector2(...)` in these five files.
+- **Evidence:** `flutter analyze` on a clean `AUD-011`-fixed tree still reports 22 issues (11 `const_initialized_with_non_constant_value`/`const_with_non_const` pairs) at `home_world.dart:89,101,154`, `loadout_world.dart:66,94,117,244`, `map_world.dart:31,95`, `settings_world.dart:106,173`, `shop_world.dart:53,66`. `vector_math`'s `Vector2` (`vector_math/lib/src/vector_math/vector2.dart`) is backed by a `Float32List` and declares no `const` constructor at all — these were already broken before `AUD-011`'s fix touched anything; they are additive, not caused by it.
+- **Reproduction:** `flutter analyze` after applying `AUD-011`'s 3-file fix — 34 total issues remain, of which these 22 are `AUD-013` and the other 12 are `AUD-012`.
+- **Expected:** Each `const Vector2(...)` becomes a plain (non-const) `Vector2(...)`, and any `static const _field = Vector2(...)` becomes `static final _field = Vector2(...)`.
+- **Impact:** Blocks `flutter analyze` clean in the same five files `AUD-011` targets, but is an unrelated defect class (const-constructibility, not type mismatch) — do not conflate the two fixes in one task.
+- **Likely cause:** Author assumed `Vector2` supports `const` (common in hand-rolled vector types); `vector_math`'s does not.
+- **Remediation task:** Landed in commit `adf7676` (c5) — locals became `final`, `map_world.dart`'s `static const _cardSize` became `static final`, and the four `const Vector2(...)` call sites in `super(...)` initializers dropped `const`. Flame's `PositionComponent` copies `size`/`position` into a `NotifyingVector2` (`flame/lib/src/components/position_component.dart:85`), so a shared non-const `Vector2` cannot be mutated through a component.
+- **Owner/due:** Claude (lead), done 2026-09-04.
+- **Workaround:** None needed — fixed.
+- **Retest evidence:** 2026-09-04 (c5) — `flutter analyze --no-pub` dropped 31 → 6 (the 22 `AUD-013` errors plus 3 lints cleared in the same commit); `flutter test` 34/34.
+- **Closure/acceptance owner:** Claude (lead), 2026-09-04 (c5).
+
+### `AUD-012` — Remaining `flutter analyze` errors unrelated to `AUD-011`, deferred to a later planning pass
+
+- **Status:** Closed — `right_panel_component.dart`'s import landed in `e8a179d`, the two minor lints in `adf7676`, and `lib/app.dart`/`PrismDefenseApp` in `733fb55`. `flutter analyze` is clean across `lib/`.
+- **Severity:** Low
+- **Detected:** 2026-09-03T18:45+05:30, c2 planning pass
+- **Source breached:** N/A — pre-existing incomplete work, not a regression.
+- **Affected users/data/components:** `lib/main.dart` (imports missing `lib/app.dart`, calls undefined `PrismDefenseApp`); `lib/game/components/hud/right_panel_component.dart` (`TapCallbacks`/`TapUpEvent` used without importing `package:flame/events.dart`); `lib/game/components/hud/tray_slot_component.dart` (unused `_costLabel` field, warning only); `lib/game/light_vs_shadow_game.dart` (`unnecessary_import`, `must_call_super`, both non-error).
+- **Evidence:** `flutter analyze` (2026-09-03T18:45+05:30) — 3 errors at `lib\main.dart:9:8`, `32:37` (x2); 2 errors at `lib\game\components\hud\right_panel_component.dart:155:51`, `212:16`; 2 non-error diagnostics elsewhere.
+- **Reproduction:** `flutter analyze` (same run as `AUD-011`).
+- **Expected:** `lib/app.dart` exists and defines `PrismDefenseApp` (a `WidgetsApp` shell wiring the worlds/router — `TASK-007`'s actual remaining scope); `right_panel_component.dart` imports `package:flame/events.dart` for `TapCallbacks`/`TapUpEvent`.
+- **Impact:** Blocks full `flutter analyze` clean and app boot even after `AUD-011` is fixed; out of scope for the c2 assignment, which targets only the highest-leverage single-file fix.
+- **Likely cause:** `TASK-007` (app shell) not yet started; a missing import in `right_panel_component.dart`.
+- **Remediation task:** c4 assigns the smallest sub-slice — the
+  `right_panel_component.dart` missing-import fix (`.ai/inbox/gnhf-assignment.md`,
+  reduces 34→31) — to Cursor this cycle. The `lib/app.dart`/`PrismDefenseApp`
+  piece (`TASK-007`'s real remaining scope, 3 of the 12 issues) and the two
+  minor lints (`tray_slot_component.dart` unused field,
+  `light_vs_shadow_game.dart` `unnecessary_import`/`must_call_super`) stay
+  deferred to a future cycle — kept separate because `lib/app.dart` is a real
+  widget (production code, bigger surface) not a mechanical import fix.
+- **Owner/due:** Cursor implementer (import fix, immediately); Claude planner
+  (`lib/app.dart` + lints, future cycle).
+- **Workaround:** None needed — tracked for sequencing only.
+- **Retest evidence:** Pending (import fix assigned this cycle, not yet run).
+- **Closure/acceptance owner:** Pending.
+
 ### Finding register
 
 | Finding | Severity | Status | Source | Remediation | Owner/due | Retest |
@@ -385,21 +457,171 @@ Required checks:
 | `AUD-005` | Medium | Open | Project directive | `TASK-012` | Solo dev / before `PH-00` exit | Pending |
 | `AUD-006` | Low | Open | Spec §20 | `TASK-040`, `TASK-041` | Solo dev / before `PH-05` exit | Pending |
 | `AUD-007` | Medium | Open | `docs/GOVERNANCE.md` | `TASK-009` onward | Solo dev / ongoing | Pending |
-| `AUD-008` | Medium | Open | This audit's brief vs reality | Reconcile plan + fix `Curves` import | Solo dev / immediately | Pending |
-| `AUD-009` | High | Open | Engineering practice | Commit working tree checkpoint | Solo dev / immediately | Pending |
+| `AUD-008` | Medium | Closed | This audit's brief vs reality | Reconcile plan + fix `Curves` import | Solo dev | Confirmed fixed (c2) |
+| `AUD-009` | High | Closed | Engineering practice | Commit working tree checkpoint | Solo dev | Confirmed committed (c1/c2) |
 | `AUD-010` | Info | Accepted risk | Project directive | None (covered by `AUD-009`) | Solo dev | N/A |
+| `AUD-011` | Medium | Closed | `lib/core/tokens.dart` vs its own doc comment | 3-file fix, `TASK-008`, landed by Cursor (`8387953`) | Cursor — done | Confirmed: analyze 34, tests 34/34 (c4) |
+| `AUD-012` | Low | Closed | Incomplete `TASK-007`; missing import | Import fix (`e8a179d`, Cursor); `lib/app.dart` shell + 2 lints (`adf7676`, `733fb55`, Claude) | Done | Confirmed: analyze clean, tests 35/35 (c5) |
+| `AUD-013` | Low | Closed | `const Vector2(...)` has no const constructor in `vector_math` | Mechanical const removal across 5 world files (`adf7676`) | Done | Confirmed: analyze 31 → 6 (c5) |
+| `AUD-014` | Medium | Closed | Flame `OpacityEffect` contract | `FadeableRender` mixin on the 4 hand-painted fade targets (`733fb55`) | Done | Confirmed: boot test passes (c5) |
+| `AUD-017` | Medium | Closed | `PRD-FR-015`; QA #10 | Read `camera.world` (`ed0c0f9`) + regression test (`d39b6b0`) | Done | Confirmed: fails without fix, 62/62 with (c6) |
+| `AUD-019` | Critical | Closed | Every interaction in the product | `IgnorePointer` around go_router's routed child (`256e995`) | Done | Confirmed on device + 3 shell tests (c7) |
+| `AUD-020` | Critical | Closed | `PRD-FR-014` vs shipped level 1 | `ADR-008` — cap tray at what the level offers | Done | Confirmed on device, 66/66 (c7) |
+| `AUD-021` | High | Open | `design.md` HUD contract; spec §11 | Diagnose `swapWorld` viewport clear vs async `onLoad` | Claude (lead) / next cycle | Pending |
+| `AUD-018` | Low | Open | Spec §23 | Drop `clearAll()` when audio assets land | `PH-04` audio owner | Pending assets |
+| `AUD-016` | Medium | Closed | `architecture.md` §6 vs the tree | `ADR-007` — accept implemented design, drop `TASK-021` | Done | Confirmed: `ADR-007` recorded (c6) |
+| `AUD-015` | Medium | Closed | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Cursor / PH-02 | Closed 2026-09-04 — `integration_test/uj01_test.dart` green on Windows |
+
+### `AUD-014` — `OpacityEffect` mounted on hand-painted components that are not `OpacityProvider`s (runtime crash)
+
+- **Status:** Closed
+- **Severity:** Medium
+- **Detected:** 2026-09-04 (c5) — surfaced the first time the app was actually booted, by the new `test/app_boot_test.dart`.
+- **Source breached:** Flame's effect contract — `OpacityEffect` requires an `OpacityProvider` target, which only `HasPaint` supplies for free.
+- **Affected users/data/components:** `lib/game/components/beam_component.dart` (beam pulse), `lib/game/components/shadow_component.dart` (fog shimmer and the death fade-out), `lib/game/worlds/home_world.dart` (`_DioramaBulb`, `_DioramaBeam`).
+- **Evidence:** `UnsupportedError: Can only apply this effect to OpacityProvider` thrown from `EffectTarget.onMount` (`flame/src/effects/effect_target.dart:21`) during `Component._mount`, on the first frame after `HomeWorld` mounts.
+- **Reproduction:** `flutter test test/app_boot_test.dart` against `adf7676`.
+- **Expected:** Each of those components exposes an `opacity` and dims when a fade runs.
+- **Impact:** Every affected component threw on mount — the home screen diorama, every beam and every shadow death. Invisible to `flutter analyze` (the contract is enforced at runtime, not by the type system), which is why an analyzer-clean tree still could not boot.
+- **Likely cause:** These components draw with several ad-hoc `Paint`s rather than one `HasPaint` paint, so they never picked up the `OpacityProvider` implementation their effects assumed.
+- **Remediation task:** `lib/game/components/fadeable.dart` — a `FadeableRender` mixin fading the subtree in one layer; applied to all four (`733fb55`).
+- **Owner/due:** Claude (lead), done 2026-09-04.
+- **Workaround:** None needed — fixed.
+- **Retest evidence:** 2026-09-04 (c5) — `flutter test` 35/35 including the boot test; `flutter analyze` clean.
+- **Closure/acceptance owner:** Claude (lead), 2026-09-04 (c5).
+
+### `AUD-015` — No `integration_test/` suite exists, so `AGENTS.md` §6's integration gate cannot run
+
+- **Status:** Closed
+- **Severity:** Medium
+- **Detected:** 2026-09-04 (c6)
+- **Remediation:** `integration_test/uj01_test.dart` covers battle-win → WinOverlay + Hive save persistence (`UJ-01` completion signal). Runnable via `flutter test integration_test -d windows`.
+- **Retest evidence:** 1/1 green on Windows desktop, 2026-09-04 (Cursor PH-02).
+- **Closure/acceptance owner:** Cursor PH-02 commit.
+
+### `AUD-016` — Specified Riverpod `BattleNotifier` state layer was never built; code and `architecture.md` disagreed silently
+
+- **Status:** Closed — resolved by `ADR-007` in favour of the implemented design.
+- **Severity:** Medium
+- **Detected:** 2026-09-04 (c6), while scoping the `PH-01` gate against the tree.
+- **Source breached:** `docs/architecture.md` §6 and the module-boundary table; `Spec §13` "State bridge to Riverpod".
+- **Affected users/data/components:** `lib/state/` (absent entirely), every `lib/game/components/hud/*` component, `BattleWorld`.
+- **Evidence:** `find lib -name "*.dart"` lists no `lib/state/` path. `grep -rn "RiverpodComponentMixin|ref\." lib` returns nothing. `architecture.md:131,154-155,172-178` specify `BattleNotifier extends Notifier<BattleState>` and the rule "HUD reads `BattleNotifier` for display values, never simulation objects", while `TopBarComponent.glow` is in fact assigned directly by `BattleWorld` and diffed in `update()`.
+- **Reproduction:** `grep -rn "RiverpodComponentMixin" lib` at `9cc0c49` — no matches.
+- **Expected:** One design, documented. Either the notifier exists, or the document says it does not.
+- **Impact:** A whole specified module missing is the `AUD-008` failure mode repeating — an agent trusting `architecture.md` would have built a parallel state layer beside a working one, or "fixed" working code to match a document nobody had reconciled. It also made `TASK-021` unstartable without an architecture decision, which is why it was fenced out of the `PH-01` Cursor assignment rather than guessed at.
+- **Likely cause:** `architecture.md` was authored from the spec in one pass at `PH-07`, before any gameplay code existed; the code then took a simpler path and no one reconciled the two.
+- **Remediation task:** `ADR-007` — accept the implemented design, strike the `lib/state` module row, re-point the HUD row, drop `TASK-021`.
+- **Owner/due:** Repo owner (decision, 2026-09-04); Claude (lead, drafting).
+- **Workaround:** N/A.
+- **Retest evidence:** 2026-09-04 (c6) — `ADR-007` recorded; `architecture.md` module table amended; `TASK-021` dropped from the plan. `flutter analyze` clean, `flutter test` 42/42 at `9cc0c49`.
+- **Closure/acceptance owner:** Repo owner, 2026-09-04 (c6).
+
+### `AUD-017` — App-lifecycle handler read `game.world`, which is never the swapped-in world (QA #10 half dead)
+
+- **Status:** Closed — fixed `ed0c0f9`, regression test `d39b6b0`.
+- **Severity:** Medium
+- **Detected:** 2026-09-04 (c6), lead review of the `PH-02` delivery.
+- **Source breached:** `docs/prd.md` `PRD-FR-015` (app lifecycle); spec §24 QA checklist #10.
+- **Affected users/data/components:** `lib/app.dart` `didChangeAppLifecycleState`, and through it every battle that gets backgrounded.
+- **Evidence:** `FlameGame.world` and `camera.world` are different objects; `swapWorld()` sets the camera's while `FlameGame.world` keeps the default `World` for the life of the game. Proven with a probe on a real game instance: `game.world = World` (`is _Marker` → **false**) versus `game.camera.world = _Marker` (`is _Marker` → **true**). The shipped code read `_game.world`, so `if (world is BattleWorld)` was false in every case — `BattleWorld.pause()` never ran on backgrounding, and the "stay paused behind the overlay" guard never ran on resume.
+- **Reproduction:** At `f7d52fd`, background the app during a battle: the engine pauses but the battle's own state never becomes `GameState.paused`.
+- **Expected:** Backgrounding pauses the engine **and** the battle simulation; resuming does not silently un-pause a battle the player paused deliberately.
+- **Impact:** Half of QA #10 was inoperative. Worse, it was **invisible to the delivered test**, which asserts only `game.paused` — satisfied by `pauseEngine()` whether or not the `BattleWorld` branch is reachable — and which ran on `/home`, where no `BattleWorld` exists at all. A green suite is not evidence that a branch is reachable.
+- **Likely cause:** The `game.world` / `camera.world` distinction is genuinely counter-intuitive. It is documented in `AGENTS.md` §6 and `STATE.md` COST NOTES and the worker was told about it in its assignment, and it was still hit — the warning is too far from the code it protects.
+- **Remediation task:** `ed0c0f9` reads `_game.camera.world` in both branches, with a comment at the site saying why. `d39b6b0` adds a regression test that pumps `PrismDefenseApp` (which owns the observer), swaps in a real `BattleWorld`, asserts it is not already paused, then asserts it pauses.
+- **Owner/due:** Claude (lead) — done 2026-09-04.
+- **Workaround:** N/A.
+- **Retest evidence:** Verified both directions: reverting `camera.world` → `world` fails the new test and only that test; restoring it passes. `flutter analyze` clean, `flutter test` 62/62 at `d39b6b0`.
+- **Closure/acceptance owner:** Claude (lead), 2026-09-04 (c6).
+
+### `AUD-018` — `GameAudio.setSoundEnabled` clears the audio cache instead of only setting volume
+
+- **Status:** Open — latent, cannot trigger today.
+- **Severity:** Low
+- **Detected:** 2026-09-04 (c6), lead review of the `PH-04` delivery.
+- **Source breached:** Spec §23 (audio); `docs/rules.md` §9 performance budgets.
+- **Affected users/data/components:** `lib/core/audio.dart` `setSoundEnabled`.
+- **Evidence:** The method calls `await FlameAudio.audioCache.clearAll()` before setting BGM volume. Clearing the cache discards every preloaded clip; it is not a volume operation. The whole body is behind `if (!_ready) return;` and `_ready` is permanently `false` while `assets/audio/` is empty, so nothing happens today.
+- **Reproduction:** Not reproducible until audio assets ship and `init()` sets `_ready`. At that point, toggling sound off then on would force a re-load of all eight clips, likely with an audible stall on the first cue after the toggle.
+- **Expected:** Toggling sound sets volume (or gates playback) and leaves the preloaded cache intact.
+- **Impact:** None today. A latent stutter the moment the blocked audio assets arrive — and it will look like an asset problem rather than a settings-code problem, which is what makes it worth recording now.
+- **Likely cause:** Written against an empty `assets/audio/`, so the line could never be observed to misbehave.
+- **Remediation task:** Drop the `clearAll()` call when the audio assets land and this path first becomes live; fold into the `PH-04` audio completion work.
+- **Owner/due:** Whoever completes `PH-04`'s audio half, once assets exist.
+- **Workaround:** N/A — inert.
+- **Retest evidence:** Pending assets.
+- **Closure/acceptance owner:** Pending.
+
+### `AUD-019` — go_router's routed `Navigator` sat over the `GameWidget` and swallowed every tap; the whole game was untappable
+
+- **Status:** Closed — fixed `256e995`.
+- **Severity:** Critical
+- **Detected:** 2026-09-04 (c7), by installing the game on a physical device and tapping PLAY.
+- **Source breached:** `PRD-FR-001`, `PRD-FR-014`, `UJ-01` — every interaction in the product.
+- **Affected users/data/components:** `lib/app.dart`'s `ShellRoute` builder; through it, every world and every button in the game.
+- **Evidence:** The shell composed `Stack(children: [RiverpodAwareGameWidget(...), child])`. go_router supplies a **full-size `Navigator`** as that `child`, which is opaque to hit-testing and is painted above the game. On device, tapping PLAY produced no navigation, no exception and no log line. Reproduced in a widget test at 2340x1080: tapping the PLAY button's exact screen position left `camera.world` as `HomeWorld`.
+- **Reproduction:** At `f545e79`, `flutter run` on any device and tap anything. Or run `test/app_navigation_test.dart` with the `IgnorePointer` removed — all three cases fail.
+- **Expected:** Taps reach the Flame components; the route bodies are zero-size side-effects and must never take input.
+- **Impact:** **The product was completely unusable while appearing perfect.** It rendered correctly on desktop and device, booted clean, and passed 62 tests. Not one of those tests could see it: they all drive worlds through a bare `GameWidget`, which has no routed Navigator above it. This is the strongest evidence yet in this project that a green suite plus a screenshot is not evidence of a working product.
+- **Likely cause:** Introduced with the app shell in `733fb55` (mine). `ShellRoute`'s `child` is easy to read as "the page content" rather than "a full-size Navigator".
+- **Remediation task:** `IgnorePointer` around the routed child (`256e995`), with a comment at the site.
+- **Owner/due:** Claude (lead) — done 2026-09-04.
+- **Workaround:** None — nothing worked.
+- **Retest evidence:** `test/app_navigation_test.dart` taps through the real shell at 812x375 and 2340x1080; verified both directions. Confirmed on the SM-S711B: PLAY now reaches the Loadout. `flutter analyze` clean, `flutter test` 66/66.
+- **Closure/acceptance owner:** Claude (lead), 2026-09-04 (c7).
+
+### `AUD-020` — Loadout demanded 6 tools while level 1 offers 3; no level was startable
+
+- **Status:** Closed — fixed `ADR-008`.
+- **Severity:** Critical
+- **Detected:** 2026-09-04 (c7), immediately after `AUD-019` made the Loadout reachable for the first time.
+- **Source breached:** `PRD-FR-014` acceptance criteria vs `assets/levels/1.json`.
+- **Affected users/data/components:** `lib/game/worlds/loadout_world.dart`; every player, every level.
+- **Evidence:** `kTrayLimit = 6` (`models.dart:12`); `assets/levels/1.json` `availableTools = ['bulb','beam','wall']`; `SaveStore`'s default `unlocked = {bulb, beam, wall}`; the gate is `_startButton.enabled = _selected.length == _trayLimit`. Three selectable, six required.
+- **Reproduction:** Fresh install, tap PLAY, select all three tools — Start Battle stays disabled.
+- **Expected:** A fresh save can start level 1.
+- **Impact:** The game could not be played at all. It is the second critical defect in one session that a passing gate test did not catch: `PH-03`'s criterion verifies that fewer/more than six is **blocked**, which was true throughout — nobody asserted the required count was **reachable**. A guard test without a reachability test is half a test.
+- **Likely cause:** `PRD-FR-014`'s "exactly 6" was written for the late game; the generated early-game content was never reconciled against it.
+- **Remediation task:** `ADR-008` — `min(kTrayLimit + bonus, eligible.length)`.
+- **Owner/due:** Repo owner (decision), Claude (lead) — done 2026-09-04.
+- **Workaround:** None.
+- **Retest evidence:** `test/app_navigation_test.dart` drives a fresh save through PLAY, selects every offered tool and asserts Start Battle enables. 66/66. Confirmed on device: the battle grid now loads.
+- **Closure/acceptance owner:** Repo owner, 2026-09-04 (c7).
+
+### `AUD-021` — Battle HUD does not appear when the battle is entered on device
+
+- **Status:** Open — observed, not yet diagnosed.
+- **Severity:** High
+- **Detected:** 2026-09-04 (c7), on the SM-S711B, immediately after `AUD-020` made a battle reachable for the first time.
+- **Source breached:** `docs/design.md` `DS-*` HUD contract; spec §11.
+- **Affected users/data/components:** `BattleWorld`, `TopBarComponent`, `RightPanelComponent`, the tool tray; `LightVsShadowGame.swapWorld`.
+- **Evidence:** Device screenshot after Start Battle shows the 21-tile grid and the lane sweep arrows rendering correctly, with **no** top bar, glow chip, wave counter, pause button, right panel or tool tray.
+- **Reproduction:** On device at `256e995`: PLAY → select the three tools → Start Battle. Grid appears, HUD does not.
+- **Expected:** The HUD mounts on `camera.viewport` with the battle.
+- **Impact:** A battle cannot be played — there is no glow readout and no tray to place tools from. Blocks `PH-02`'s on-device playthrough gate item.
+- **Likely cause:** Unconfirmed. Prime suspect is `LightVsShadowGame.swapWorld`, which clears `camera.viewport` (`removeAll`) as its last step while the incoming world's `onLoad` — which is what adds the HUD — runs asynchronously afterwards; ordering between the two is not guaranteed. `swapWorld` also still reads `final previous = world`, the same `game.world`-vs-`camera.world` confusion as `AUD-017`, so the outgoing world is never actually removed after the first swap and worlds accumulate.
+- **Remediation task:** Next session — first action in `STATE.md`.
+- **Owner/due:** Claude (lead), next cycle.
+- **Workaround:** None.
+- **Retest evidence:** Pending.
+- **Closure/acceptance owner:** Pending.
 
 ## 15. Gate decision
 
-- **Decision:** `No-go` (expected — this is the pre-feature-work baseline audit, not a release gate).
-- **Scope of decision:** `PH-07` closeout / readiness to begin `PH-00`.
-- **Blocking findings:** `AUD-009` (High — commit the working tree before any further code work, to avoid catastrophic loss) is the only finding that should block starting *new* work; `AUD-002`, `AUD-005`, `AUD-007`, `AUD-008` block `PH-00`'s own exit gate but not the decision to begin `PH-00`.
+- **Decision:** `No-go` (expected — `PH-00` exit gate is not yet met: `flutter analyze` is not clean).
+- **Scope of decision:** `PH-00` exit gate readiness.
+- **Blocking findings:** `AUD-002`, `AUD-005`, `AUD-007` remain open and block `PH-00`'s exit gate; `AUD-015` (no integration suite) blocks `PH-02`'s. `AUD-011`, `AUD-012`, `AUD-013` and `AUD-014` are closed — `flutter analyze` is clean across `lib/` and `flutter test` is 35/35 (c5).
 - **Accepted risks:** `AUD-001`, `AUD-003`, `AUD-010` — all Low/Info, deliberate and documented substitutions.
-- **Required follow-up:** Commit the working tree (`AUD-009`), then proceed with `TASK-007` onward per `docs/implementation_plan.md`, closing `AUD-002`/`AUD-005`/`AUD-007`/`AUD-008` as part of `PH-00`'s own exit gate.
-- **Decision owner/date:** Solo developer (repo owner), 2026-09-03.
+- **Required follow-up:** Run the app on a device and confirm a level is playable start to win/lose (the remaining `GOAL` box); then close `AUD-002`/`AUD-005`/`AUD-007` before claiming the `PH-00` exit gate.
+- **Decision owner/date:** Solo developer (repo owner), 2026-09-04.
 
 ## 16. Audit history
 
 | Date | Scope/version | Decision | Open C/H/M/L | Auditor | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 2026-09-03 | Baseline (pre-`PH-00`) | No-go | 0/1/4/2 | Claude Sonnet 5 | First audit. Found the working tree already contains partial, uncommitted, unverified game code beyond what this audit was briefed to expect — see `AUD-008`. Most urgent finding is `AUD-009` (uncommitted work, High). |
+| 2026-09-03 (c2) | `PH-00` in progress | No-go | 0/0/2/1 | Claude Sonnet 5 (planner) | `AUD-008`/`AUD-009` closed (fixed/committed). `flutter analyze` now shows 49 errors from newer code — root-caused to one file (`AUD-011`, assigned this cycle) plus a small remainder (`AUD-012`, next cycle). |
+| 2026-09-04 (c3) | `PH-00` in progress | No-go | 0/0/2/2 | Claude Sonnet 5 (planner) | Cursor tried c2's 1-file `AUD-011` fix, returned `IMPLEMENTATION_BLOCKED` (2 consumer files also need edits). Planner traced every consumer, verified a 3-file fix locally (56→34 issues, reverted before handoff), reassigned to Cursor. Surfaced a new pre-existing defect (`AUD-013`, `const Vector2` has no const constructor) while verifying — it accounts for the gap between the c2 assignment's optimistic ≤12 target and the real 34. |
+| 2026-09-04 (c5) | `PH-00` in progress | No-go | 0/0/0/0 | Claude Opus 5 (lead) | GNHF loop stopped after its c4 planner stalled; the lead took the work directly. Closed `AUD-013` (`adf7676`, analyze 31 → 6) and `AUD-012` (`733fb55`, `lib/app.dart` shell + boot test, analyze clean). Booting the app for the first time surfaced `AUD-014` — `OpacityEffect` on four non-`OpacityProvider` components — fixed in the same commit. `flutter analyze`: No issues found. `flutter test`: 35/35. Gate stays No-go on `AUD-002`/`AUD-005`/`AUD-007` and the still-unproven on-device play-through. |
+| 2026-09-04 (c4) | `PH-00` in progress | No-go | 0/0/1/2 | Claude Sonnet 5 (planner) | Cursor landed the c3 3-file `AUD-011` fix (commit `8387953`) — reran `flutter analyze` (34 issues, matches evidence) and `flutter test` (34/34) to confirm, closed `AUD-011`. Assigned the smallest remaining `AUD-012` piece — a missing `package:flame/events.dart` import in `right_panel_component.dart` (34→31) — to Cursor; `lib/app.dart`/`TASK-007` and two minor lints stay deferred as a separate, larger slice. |

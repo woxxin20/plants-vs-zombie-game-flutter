@@ -1,12 +1,12 @@
 /// Settings screen (spec §12) — Sound / Haptics toggles + destructive Reset.
 library;
 
-import 'dart:ui';
-
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
+import 'package:flutter/widgets.dart';
 
+import '../../core/audio.dart';
 import '../../core/layout.dart';
 import '../../core/save_store.dart';
 import '../../core/tokens.dart';
@@ -65,6 +65,7 @@ class SettingsWorld extends World with HasGameReference<LightVsShadowGame> {
         onChanged: (v) {
           save.sound = v;
           SaveStore.I.flush();
+          GameAudio.setSoundEnabled(v);
         },
         position: Vector2(switchX, y),
       ),
@@ -85,6 +86,7 @@ class SettingsWorld extends World with HasGameReference<LightVsShadowGame> {
         onChanged: (v) {
           save.haptics = v;
           SaveStore.I.flush();
+          GameAudio.setHapticsEnabled(v);
         },
         position: Vector2(switchX, y),
       ),
@@ -101,9 +103,9 @@ class SwitchComponent extends PositionComponent with TapCallbacks {
   SwitchComponent({
     required bool value,
     required this.onChanged,
-    Vector2? position,
+    super.position,
   }) : _value = value,
-       super(size: const Vector2(40, 22), position: position);
+       super(size: Vector2(40, 22));
 
   bool _value;
   final void Function(bool value) onChanged;
@@ -152,6 +154,17 @@ class SwitchComponent extends PositionComponent with TapCallbacks {
     );
     onChanged(_value);
   }
+
+  /// Test seam — production uses taps.
+  @visibleForTesting
+  void debugSet(bool value) {
+    if (_value == value) return;
+    _value = value;
+    onChanged(_value);
+  }
+
+  @visibleForTesting
+  bool get debugValue => _value;
 }
 
 /// Draws its own thumb circle since it never leaves the parent's paint set.
@@ -170,7 +183,7 @@ class _ThumbCircle extends PositionComponent {
 /// the window lapse silently disarms it.
 class _ResetRow extends PositionComponent with TapCallbacks {
   _ResetRow({required Vector2 position})
-    : super(position: position, size: const Vector2(300, 40));
+    : super(position: position, size: Vector2(300, 40));
 
   bool _armed = false;
   double _remaining = 0;

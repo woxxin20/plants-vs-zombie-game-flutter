@@ -29,7 +29,10 @@ class GameButton extends PositionComponent with TapCallbacks {
     super.anchor,
   }) : _enabled = enabled,
        super(
-         size: Vector2(math.max(size.x, S.minTouch), math.max(size.y, S.minTouch)),
+         size: Vector2(
+           math.max(size.x, S.minTouch),
+           math.max(size.y, S.minTouch),
+         ),
        );
 
   final String label;
@@ -72,13 +75,19 @@ class GameButton extends PositionComponent with TapCallbacks {
   @override
   void render(Canvas canvas) {
     final alpha = _enabled ? 1.0 : 0.4;
-    final rrect = RRect.fromRectAndRadius(Offset.zero & size.toSize(), const Radius.circular(R.button));
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size.toSize(),
+      const Radius.circular(R.button),
+    );
     if (style == GameButtonStyle.primary) {
       canvas.save();
       canvas.translate(0, Elevation.button.dy);
       canvas.drawRRect(
         rrect,
-        _shadowPaint..color = Elevation.button.color.withValues(alpha: Elevation.button.color.a * alpha),
+        _shadowPaint
+          ..color = Elevation.button.color.withValues(
+            alpha: Elevation.button.color.a * alpha,
+          ),
       );
       canvas.restore();
     }
@@ -96,7 +105,11 @@ class GameButton extends PositionComponent with TapCallbacks {
     add(
       ScaleEffect.to(
         Vector2.all(0.97),
-        EffectController(duration: D.secs(D.buttonPress), curve: Curves.easeOut, alternate: true),
+        EffectController(
+          duration: D.secs(D.buttonPress),
+          curve: Curves.easeOut,
+          alternate: true,
+        ),
         onComplete: onPressed,
       ),
     );

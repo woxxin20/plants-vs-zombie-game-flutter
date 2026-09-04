@@ -57,7 +57,10 @@ class TopBarComponent extends PositionComponent {
         '$glow',
         style: T.number,
         color: C.primary,
-        position: Vector2(_chipRect.left + S.x2 + _iconSize + S.x1, chipCenterY),
+        position: Vector2(
+          _chipRect.left + S.x2 + _iconSize + S.x1,
+          chipCenterY,
+        ),
         anchor: Anchor.centerLeft,
       ),
     );
@@ -84,7 +87,10 @@ class TopBarComponent extends PositionComponent {
     if (glow != _lastGlow) {
       _lastGlow = glow;
       _glowLabel.text = '$glow';
-      _glowMaxLabel.position = Vector2(_glowLabel.x + _glowLabel.width + S.x1, _glowMaxLabel.y);
+      _glowMaxLabel.position = Vector2(
+        _glowLabel.x + _glowLabel.width + S.x1,
+        _glowMaxLabel.y,
+      );
     }
     if (waveIndex != _lastWaveIndex || waveCount != _lastWaveCount) {
       _lastWaveIndex = waveIndex;
@@ -135,7 +141,10 @@ class TopBarComponent extends PositionComponent {
     canvas.drawRect(Offset.zero & size.toSize(), _bg);
     canvas.drawLine(Offset(0, size.y), Offset(size.x, size.y), _border);
 
-    final chip = RRect.fromRectAndRadius(_chipRect, const Radius.circular(R.chip));
+    final chip = RRect.fromRectAndRadius(
+      _chipRect,
+      const Radius.circular(R.chip),
+    );
     canvas.drawRRect(chip, _chipFill);
     canvas.drawRRect(chip, _chipBorder);
     paintSunburst(
@@ -162,7 +171,11 @@ class _FlagDot extends PositionComponent {
     add(
       ScaleEffect.to(
         Vector2.all(1.2),
-        EffectController(duration: D.secs(D.bob), curve: Curves.easeOut, alternate: true),
+        EffectController(
+          duration: D.secs(D.bob),
+          curve: Curves.easeOut,
+          alternate: true,
+        ),
       ),
     );
   }
@@ -182,7 +195,10 @@ class _FlagDot extends PositionComponent {
 /// Right-side pause toggle — 48x48, two hand-drawn bars.
 class _PauseButton extends PositionComponent with TapCallbacks {
   _PauseButton({required this.onPause})
-    : super(size: Vector2.all(S.minTouch), position: Vector2(kBaselineSize.x - S.screenPad - S.minTouch, 0));
+    : super(
+        size: Vector2.all(S.minTouch),
+        position: Vector2(kBaselineSize.x - S.screenPad - S.minTouch, 0),
+      );
 
   final void Function() onPause;
 
@@ -191,7 +207,10 @@ class _PauseButton extends PositionComponent with TapCallbacks {
   @override
   void render(Canvas canvas) {
     canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size.toSize(), const Radius.circular(R.slot)),
+      RRect.fromRectAndRadius(
+        Offset.zero & size.toSize(),
+        const Radius.circular(R.slot),
+      ),
       _bg,
     );
     paintPauseBars(canvas, Offset(size.x / 2, size.y / 2), 20, C.textPrimary);

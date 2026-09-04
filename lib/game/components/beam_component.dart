@@ -14,8 +14,9 @@ import '../../core/layout.dart';
 import '../../core/tokens.dart';
 import '../../data/optics.dart';
 import 'backdrop_layers.dart' show P;
+import 'fadeable.dart';
 
-class BeamComponent extends PositionComponent {
+class BeamComponent extends PositionComponent with FadeableRender {
   BeamComponent() : super(priority: P.beam);
 
   Offset _from = Offset.zero;
@@ -48,12 +49,14 @@ class BeamComponent extends PositionComponent {
 
   /// Points this segment at a new path. Cheap — no allocation, no remount.
   void setSegment(BeamSegment s, BattleLayout layout) {
-    final from = layout.origin +
+    final from =
+        layout.origin +
         Vector2(
           s.fromCol * (layout.tile + S.tileGap) + layout.tile / 2,
           s.fromRow * (layout.tile + S.tileGap) + layout.tile / 2,
         );
-    final to = layout.origin +
+    final to =
+        layout.origin +
         Vector2(
           s.toCol * (layout.tile + S.tileGap) + layout.tile / 2,
           s.toRow * (layout.tile + S.tileGap) + layout.tile / 2,

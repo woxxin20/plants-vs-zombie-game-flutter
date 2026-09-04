@@ -30,7 +30,8 @@ final math.Random _rng = math.Random();
 // Lifespans (seconds), derived from D tokens — see file doc comment.
 final double _tPlace = D.secs(D.winStarStagger); // 120ms
 final double _tCollect = D.secs(D.hpLerp); // 200ms
-final double _tHitSpark = D.secs(D.loseShake) - D.secs(D.winStarStagger); // 180ms
+final double _tHitSpark =
+    D.secs(D.loseShake) - D.secs(D.winStarStagger); // 180ms
 final double _tSweep = D.secs(D.bob) + D.secs(D.buttonPress); // 500ms
 final double _tDissolve = D.secs(D.bob); // 400ms
 final double _tExplosion = D.secs(D.winStar); // 400ms
@@ -169,10 +170,10 @@ ParticleSystemComponent deathDissolve(Vector2 at) {
         final dx = (_rng.nextDouble() - 0.5) * 16;
         final dy = -18 - _rng.nextDouble() * 18;
         final radius = 2.5 + _rng.nextDouble() * 2;
-        return _dot(C.shadowBorder, radius).moving(
-          to: Vector2(dx, dy),
-          curve: Curves.easeOut,
-        );
+        return _dot(
+          C.shadowBorder,
+          radius,
+        ).moving(to: Vector2(dx, dy), curve: Curves.easeOut);
       },
     ),
   );
@@ -203,7 +204,8 @@ ParticleSystemComponent confettiFall(Vector2 at, double width) => _system(
       final x0 = (_rng.nextDouble() - 0.5) * width;
       final fallY = 120 + _rng.nextDouble() * 80;
       final sway = (_rng.nextDouble() - 0.5) * 24;
-      final spin = (_rng.nextBool() ? 1 : -1) * math.pi * (2 + _rng.nextDouble() * 2);
+      final spin =
+          (_rng.nextBool() ? 1 : -1) * math.pi * (2 + _rng.nextDouble() * 2);
       final color = C.prismSpectrum[i % C.prismSpectrum.length];
       return _dot(color, 3, fade: false)
           .rotating(from: 0, to: spin)

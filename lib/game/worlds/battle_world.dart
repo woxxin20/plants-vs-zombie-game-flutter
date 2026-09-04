@@ -10,6 +10,7 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 
+import '../../core/audio.dart';
 import '../../core/layout.dart';
 import '../../core/save_store.dart';
 import '../../core/tokens.dart';
@@ -27,6 +28,9 @@ import '../components/tools/tool_factory.dart';
 import '../light_vs_shadow_game.dart';
 import '../particles/effect_pool.dart';
 import '../particles/particle_definitions.dart' as fx;
+import '../components/hud/overlay_lose.dart';
+import '../components/hud/overlay_pause.dart';
+import '../components/hud/overlay_win.dart';
 
 /// How often a Beam Lamp / Frost Lens fires (spec §6: "20 dmg / 1.2s tick").
 const double kEmitterInterval = 1.2;
@@ -176,6 +180,8 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     add(tool);
 
     _fx.emit(() => fx.placeBurst(center));
+    GameAudio.play(Sfx.place);
+    GameAudio.haptic();
     _refreshGlowPools();
     return result;
   }
@@ -197,16 +203,13 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     final center = layout.tileCenter(row, col);
     final footprint = rules.bombFootprint(row, col);
     _fx.emit(() => fx.explosionBurst(center));
+    GameAudio.play(Sfx.explosion);
 
     for (final s in shadows.toList()) {
       final c = layout.tileColFromX(s.position.x);
       if (c == null) continue;
       if (!footprint.any((f) => f.row == s.lane && f.col == c)) continue;
-      if (s.takeBeamDamage(
-        kBombDamage.toDouble(),
-        slow: false,
-        now: time,
-      )) {
+      if (s.takeBeamDamage(kBombDamage.toDouble(), slow: false, now: time)) {
         _killShadow(s);
       }
     }
@@ -285,6 +288,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
         onCollect: (orb) {
           _setGlow(glow + kGlowFallAmount);
           _fx.emit(() => fx.collectBurst(orb.position.clone()));
+          GameAudio.play(Sfx.collect);
         },
       ),
     );
@@ -366,7 +370,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
           _tools[front.row][front.col] = null;
           grid.tileAt(front.row, front.col).occupied = false;
           front.destroyAndRemove();
-                _refreshGlowPools();
+          _refreshGlowPools();
         }
       } else {
         s.isEating = false;
@@ -405,10 +409,9 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
       sweepAvailable[lane] = false;
       grid.sweepAvailable[lane] = false;
       _fx.emit(
-        () => fx.sweepBurst(
-          Vector2(layout.origin.x, layout.laneCenterY(lane)),
-        ),
+        () => fx.sweepBurst(Vector2(layout.origin.x, layout.laneCenterY(lane))),
       );
+      GameAudio.play(Sfx.sweep);
       for (final victim in shadows.where((x) => x.lane == lane).toList()) {
         _killShadow(victim);
       }
@@ -462,19 +465,30 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
 
     // Damage is continuous while a beam rests on a shadow; the 1.2s tick only
     // gates the *sound and spark*, so the numbers in §6 read as dps.
+    // QA #9: the ray hits the first shadow; co-located shadows in the same
+    // tile rect also take damage via this area check.
+    final damaged = <ShadowComponent>{};
     for (final hit in result.hits) {
-      final s = hit.targetId as ShadowComponent;
-      if (s.takeBeamDamage(
-        hit.dmgPerSecond * dt,
-        slow: hit.applySlow,
-        now: time,
-      )) {
-        _killShadow(s);
-          } else if (fired) {
-        _fx.emit(() => fx.hitSpark(s.position.clone()));
+      final primary = hit.targetId as ShadowComponent;
+      final primaryCol = layout.colFromX(primary.position.x);
+      for (final s in shadows) {
+        if (s.lane != primary.lane) continue;
+        if ((layout.colFromX(s.position.x) - primaryCol).abs() > 0.5) continue;
+        if (!damaged.add(s)) continue;
+        if (s.takeBeamDamage(
+          hit.dmgPerSecond * dt,
+          slow: hit.applySlow,
+          now: time,
+        )) {
+          _killShadow(s);
+        } else if (fired) {
+          _fx.emit(() => fx.hitSpark(s.position.clone()));
+          GameAudio.play(Sfx.hit);
+        }
       }
     }
 
+    if (fired) GameAudio.play(Sfx.shoot);
     _renderSegments(result.segments);
   }
 
@@ -507,7 +521,8 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     }
     if (rules.hasLost(
       shadows: [
-        for (final s in shadows) (x: s.position.x - layout.origin.x, lane: s.lane),
+        for (final s in shadows)
+          (x: s.position.x - layout.origin.x, lane: s.lane),
       ],
       sweepAvailable: sweepAvailable,
     )) {
@@ -535,13 +550,24 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     if (level.unlockReward case final reward?) save.unlocked.add(reward);
     SaveStore.I.flush();
 
-    onWin(stars, coins);
+    GameAudio.play(Sfx.win);
+    _fx.emit(() => fx.confettiFall(Vector2(kBaselineSize.x / 2, 20), 420));
+    game.pauseEngine();
+    _showOverlay(
+      WinOverlay(
+        stars: stars,
+        coins: coins,
+        onMap: () => onWin(stars, coins),
+        onNext: () => onWin(stars, coins),
+      ),
+    );
   }
 
   void _finishLost() {
     state = GameState.lost;
     SaveStore.I.state.totalPlays += 1;
     SaveStore.I.flush();
+    GameAudio.play(Sfx.lose);
     // Spec §12: the world shakes before the overlay lands.
     game.camera.viewfinder.add(
       MoveByEffect(
@@ -551,18 +577,44 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
           alternate: true,
           repeatCount: 3,
         ),
-        onComplete: onLose,
+        onComplete: () {
+          game.pauseEngine();
+          _showOverlay(LoseOverlay(onTryAgain: onLose, onMap: onLose));
+        },
       ),
     );
   }
 
   /// Spec §24 edge cases 10/11/15: lifecycle and rotation pause the sim without
-  /// tearing the tree down.
-  void pause() {
-    if (state == GameState.playing) state = GameState.paused;
+  /// tearing the tree down. Also mounts the Pause overlay (DS-075).
+  void pause({bool showOverlay = true}) {
+    if (state != GameState.playing) return;
+    state = GameState.paused;
+    game.pauseEngine();
+    if (showOverlay) {
+      _showOverlay(
+        PauseOverlay(onResume: resume, onRestart: onLose, onHome: onLose),
+      );
+    }
   }
 
   void resume() {
-    if (state == GameState.paused) state = GameState.playing;
+    if (state != GameState.paused) return;
+    _dismissOverlay();
+    state = GameState.playing;
+    game.resumeEngine();
+  }
+
+  Component? _activeOverlay;
+
+  void _showOverlay(Component overlay) {
+    _dismissOverlay();
+    _activeOverlay = overlay;
+    game.camera.viewport.add(overlay);
+  }
+
+  void _dismissOverlay() {
+    _activeOverlay?.removeFromParent();
+    _activeOverlay = null;
   }
 }

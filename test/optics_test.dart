@@ -17,18 +17,21 @@ BeamTarget target(Object id, int lane, double col, {bool fog = false}) =>
     (row: row, col: col, kind: BeamKind.light, dmg: 20);
 
 void main() {
-  test('a lamp with an empty lane draws one segment to the edge and hits nothing', () {
-    final r = traceAll(
-      grid: emptyGrid(),
-      targets: const [],
-      emitters: [lamp(1, 0)],
-    );
+  test(
+    'a lamp with an empty lane draws one segment to the edge and hits nothing',
+    () {
+      final r = traceAll(
+        grid: emptyGrid(),
+        targets: const [],
+        emitters: [lamp(1, 0)],
+      );
 
-    expect(r.hits, isEmpty);
-    expect(r.segments, hasLength(1));
-    expect(r.segments.single.toCol, kCols.toDouble());
-    expect(r.segments.single.fromRow, 1);
-  });
+      expect(r.hits, isEmpty);
+      expect(r.segments, hasLength(1));
+      expect(r.segments.single.toCol, kCols.toDouble());
+      expect(r.segments.single.fromRow, 1);
+    },
+  );
 
   test('a shadow in the lane takes the full damage and stops the beam', () {
     final r = traceAll(
@@ -60,7 +63,10 @@ void main() {
       targets: [target('v', 1, 3, fog: true)],
       emitters: [lamp(1, 0)],
     );
-    expect(light.hits.single.dmgPerSecond, closeTo(20 * kFogDamageFactor, 1e-9));
+    expect(
+      light.hits.single.dmgPerSecond,
+      closeTo(20 * kFogDamageFactor, 1e-9),
+    );
 
     final frost = traceAll(
       grid: emptyGrid(),
@@ -117,13 +123,29 @@ void main() {
         ..[2][2] = 'mirror';
 
       // If the visited-set or the depth cap regressed, this call never returns.
-      final r = traceAll(
-        grid: g,
-        targets: const [],
-        emitters: [lamp(0, 0)],
-      );
+      final r = traceAll(grid: g, targets: const [], emitters: [lamp(0, 0)]);
 
       expect(r.segments.length, lessThanOrEqualTo(kBeamMaxDepth + 2));
+    });
+
+    test('depth-3 cap stops a multi-prism chain (QA #7)', () {
+      // Four prisms in a row: the rightward child of the 4th would be depth 4
+      // and must be rejected, so a shadow past the chain is never hit.
+      final g = emptyGrid()
+        ..[1][1] = 'prism'
+        ..[1][2] = 'prism'
+        ..[1][3] = 'prism'
+        ..[1][4] = 'prism';
+
+      final r = traceAll(
+        grid: g,
+        targets: [target('far', 1, 6)],
+        emitters: [lamp(1, 0)],
+      );
+
+      expect(r.hits.where((h) => h.targetId == 'far'), isEmpty);
+      // Termination proof: call returned and stayed within a bounded segment count.
+      expect(r.segments.length, lessThanOrEqualTo(20));
     });
   });
 
@@ -144,10 +166,7 @@ void main() {
       for (final h in r.hits) {
         expect(h.dmgPerSecond, closeTo(20 * kPrismDamageFactor, 1e-9));
       }
-      expect(
-        r.hits.map((h) => h.targetId).toSet(),
-        {'up', 'mid', 'down'},
-      );
+      expect(r.hits.map((h) => h.targetId).toSet(), {'up', 'mid', 'down'});
     });
 
     test('with nothing around it still terminates', () {

@@ -4,9 +4,10 @@
 library;
 
 import 'dart:math' as math;
-import 'dart:ui';
+import 'dart:ui' hide TextStyle;
 
 import 'package:flame/components.dart';
+import 'package:flutter/painting.dart' show TextStyle;
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 
@@ -59,12 +60,12 @@ class WorldButton extends PositionComponent with TapCallbacks {
     TextStyle? textStyle,
     double? radius,
     this.enabled = true,
-    Vector2? position,
+    super.position,
     Anchor anchor = Anchor.topLeft,
     int priority = 0,
   }) : radius = radius ?? R.button,
        _textStyle = textStyle ?? T.h3,
-       super(size: size, position: position, anchor: anchor, priority: priority);
+       super(size: size, anchor: anchor, priority: priority);
 
   String label;
   VoidCallback onPressed;
@@ -162,13 +163,13 @@ class WorldChip extends PositionComponent {
     Color textColor = C.textPrimary,
     TextStyle? textStyle,
     double? radius,
-    Vector2? position,
+    super.position,
     Anchor anchor = Anchor.topLeft,
     int priority = 0,
   }) : radius = radius ?? R.chip,
        _label = label,
        _textStyle = (textStyle ?? T.bodySmall).copyWith(color: textColor),
-       super(size: size, position: position, anchor: anchor, priority: priority);
+       super(size: size, anchor: anchor, priority: priority);
 
   Color background;
   double radius;

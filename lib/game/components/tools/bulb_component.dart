@@ -22,7 +22,10 @@ class BulbComponent extends ToolComponent {
   static const double _rayInner = _radius + S.x1;
   static const double _rayOuter = _radius + S.x2;
 
-  static final Paint _bloom = ToolComponent.bloom(C.primary, Elevation.tool.blur);
+  static final Paint _bloom = ToolComponent.bloom(
+    C.primary,
+    Elevation.tool.blur,
+  );
   static final Paint _fill = Paint()..color = C.primary;
   static final Paint _ray = Paint()
     ..color = C.primary

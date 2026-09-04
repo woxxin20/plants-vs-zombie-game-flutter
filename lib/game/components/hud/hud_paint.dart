@@ -1,14 +1,12 @@
 /// Shared low-level drawing helpers for the HUD layer.
 ///
-/// `T.*` (lib/core/tokens.dart) is built from `dart:ui`'s `TextStyle`, not
-/// Flutter's `painting.TextStyle` — an offline-fonts choice (ADR-005) that
-/// also means Flame's `TextComponent`/`TextPaint` (which require the latter)
-/// can't consume a `T.*` token without either modifying tokens.dart
-/// (forbidden by the HUD task) or adding a `flutter/painting.dart`
-/// dependency the tokens file itself doesn't take. `HudLabel` instead paints
-/// a raw `dart:ui.Paragraph`, pushing a `T.*` style — and optionally a `C.*`
-/// colour on top of it via a second `pushStyle` — so every HUD label still
-/// reads its typography and colour from tokens.dart alone, nothing literal.
+/// `T.*` (lib/core/tokens.dart) is `package:flutter/painting.dart`'s
+/// `TextStyle` (AUD-011) — the type Flame's own `TextPaint` expects too.
+/// `HudLabel` still paints a raw `dart:ui.Paragraph` instead of a Flame
+/// `TextComponent`/`TextPaint`, so it converts a `T.*` style to a
+/// `dart:ui.TextStyle` via `TextStyle.getTextStyle()` before pushing it —
+/// every HUD label still reads its typography and colour from tokens.dart
+/// alone, nothing literal.
 ///
 /// `paintSunburst`/`paintPennant`/`paintPauseBars`/`paintStar` are the
 /// hand-drawn glyphs spec §10.5 requires in place of Material icons, shared
@@ -16,19 +14,26 @@
 library;
 
 import 'dart:math' as math;
-import 'dart:ui';
+import 'dart:ui' hide TextStyle;
+import 'dart:ui' as ui show TextStyle;
 
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart' show OpacityProvider;
+import 'package:flutter/painting.dart' show TextStyle;
 
 /// A single line of `T.*`-styled text, drawn as a raw `dart:ui.Paragraph`.
 ///
 /// Implements [OpacityProvider] so a stock Flame `OpacityEffect` can target
 /// it directly (used for the disabled-button dim and the toast fade).
 class HudLabel extends PositionComponent implements OpacityProvider {
-  HudLabel(String text, {required TextStyle style, Color? color, super.position, super.anchor})
-    : _style = style,
-      _color = color {
+  HudLabel(
+    String text, {
+    required TextStyle style,
+    Color? color,
+    super.position,
+    super.anchor,
+  }) : _style = style,
+       _color = color {
     this.text = text;
   }
 
@@ -64,10 +69,13 @@ class HudLabel extends PositionComponent implements OpacityProvider {
   }
 
   void _rebuild() {
-    final builder = ParagraphBuilder(ParagraphStyle())..pushStyle(_style);
+    final builder = ParagraphBuilder(ParagraphStyle())
+      ..pushStyle(_style.getTextStyle());
     final c = _color;
     if (c != null) {
-      builder.pushStyle(TextStyle(color: c.withValues(alpha: c.a * _opacity)));
+      builder.pushStyle(
+        ui.TextStyle(color: c.withValues(alpha: c.a * _opacity)),
+      );
     }
     builder.addText(_text);
     _paragraph = builder.build()
@@ -91,7 +99,11 @@ void paintSunburst(Canvas canvas, Offset center, double size, Color color) {
   for (var i = 0; i < rays; i++) {
     final a = (i / rays) * 2 * math.pi;
     final dir = Offset(math.cos(a), math.sin(a));
-    canvas.drawLine(center + dir * (r + size * 0.1), center + dir * (size * 0.5), stroke);
+    canvas.drawLine(
+      center + dir * (r + size * 0.1),
+      center + dir * (size * 0.5),
+      stroke,
+    );
   }
 }
 
@@ -122,13 +134,26 @@ void paintPauseBars(Canvas canvas, Offset center, double size, Color color) {
   final barH = size * 0.8;
   final gap = size * 0.2;
   for (final dx in [-(gap / 2 + barW / 2), gap / 2 + barW / 2]) {
-    final rect = Rect.fromCenter(center: center.translate(dx, 0), width: barW, height: barH);
-    canvas.drawRRect(RRect.fromRectAndRadius(rect, Radius.circular(barW / 3)), paint);
+    final rect = Rect.fromCenter(
+      center: center.translate(dx, 0),
+      width: barW,
+      height: barH,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, Radius.circular(barW / 3)),
+      paint,
+    );
   }
 }
 
 /// Hand-drawn 5-point star, `size` diameter, centred on [center].
-void paintStar(Canvas canvas, Offset center, double size, Color color, {required bool filled}) {
+void paintStar(
+  Canvas canvas,
+  Offset center,
+  double size,
+  Color color, {
+  required bool filled,
+}) {
   final outerR = size / 2;
   final innerR = size / 4.2;
   final path = Path();

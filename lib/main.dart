@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'core/audio.dart';
 import 'core/save_store.dart';
 import 'data/content.dart';
 
@@ -28,6 +29,7 @@ Future<void> main() async {
 
   await SaveStore.open();
   await Content.load();
+  await GameAudio.init();
 
   runApp(const ProviderScope(child: PrismDefenseApp()));
 }

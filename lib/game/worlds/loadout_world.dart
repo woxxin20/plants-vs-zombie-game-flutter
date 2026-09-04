@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flame/events.dart';
 
 import '../../core/layout.dart';
@@ -48,7 +49,21 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
 
     final level = Content.I.level(levelId);
     final save = SaveStore.I.state;
-    _trayLimit = kTrayLimit + save.traySlotBonus;
+
+    final unlockedTools = level.availableTools
+        .where(save.unlocked.contains)
+        .toList(growable: false);
+
+    // ADR-008: the tray asks for a full loadout, but early levels offer fewer
+    // tools than the tray holds. Requiring exactly `kTrayLimit` made Start
+    // Battle unreachable at level 1 (3 tools offered, 6 demanded) and no level
+    // was playable at all. Cap the requirement at what the player can actually
+    // pick; once 6+ tools are unlocked this is `kTrayLimit` again, exactly as
+    // PRD-FR-014 describes.
+    _trayLimit = math.min(
+      kTrayLimit + save.traySlotBonus,
+      unlockedTools.length,
+    );
 
     await add(
       WorldButton(
@@ -63,7 +78,7 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
     );
 
     // --- Scout panel -------------------------------------------------
-    const panelSize = Vector2(340, 351);
+    final panelSize = Vector2(340, 351);
     final panelPos = Vector2(S.screenPad, S.screenPad);
     await add(_ScoutPanel(size: panelSize, position: panelPos, level: level));
 
@@ -87,18 +102,11 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
     );
     await add(_pickedLabel);
 
-    final unlockedTools = level.availableTools
-        .where(save.unlocked.contains)
-        .toList(growable: false);
-
-    const slotSize = Vector2(76, 96);
+    final slotSize = Vector2(76, 96);
     const cols = 4;
     const gap = S.x3;
     final gridW = cols * slotSize.x + (cols - 1) * gap;
-    final gridOrigin = Vector2(
-      rightX + (rightW - gridW) / 2,
-      60,
-    );
+    final gridOrigin = Vector2(rightX + (rightW - gridW) / 2, 60);
 
     for (var i = 0; i < unlockedTools.length; i++) {
       final tool = Content.I.tool(unlockedTools[i]);
@@ -106,7 +114,9 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
       final col = i % cols;
       final slot = _ToolSlot(
         tool: tool,
-        position: gridOrigin + Vector2(col * (slotSize.x + gap), row * (slotSize.y + gap)),
+        position:
+            gridOrigin +
+            Vector2(col * (slotSize.x + gap), row * (slotSize.y + gap)),
         onTap: _toggle,
       );
       _slots.add(slot);
@@ -114,7 +124,7 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
     }
 
     // --- start battle button --------------------------------------------
-    const startSize = Vector2(260, 56);
+    final startSize = Vector2(260, 56);
     _startButton = WorldButton(
       size: startSize.clone(),
       label: 'START BATTLE',
@@ -142,6 +152,32 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
     }
     _pickedLabel.text = 'PICKED ${_selected.length}/$_trayLimit';
     _startButton.enabled = _selected.length == _trayLimit;
+  }
+
+  /// Test seam for the pick-6 gate (PH-03) — production UI uses slot taps.
+  @visibleForTesting
+  void debugToggle(String toolId) => _toggle(toolId);
+
+  @visibleForTesting
+  bool get debugCanStart => _startButton.enabled;
+
+  /// How many tools this level actually offers the player.
+  @visibleForTesting
+  int get debugSlotCount => _slots.length;
+
+  /// Picks every offered tool. Used to assert that a full pick is REACHABLE,
+  /// which is the half `debugToggle` alone cannot prove (AUD-020).
+  @visibleForTesting
+  void debugSelectAll() {
+    for (final slot in _slots) {
+      if (!_selected.contains(slot.tool.id)) _toggle(slot.tool.id);
+    }
+  }
+
+  @visibleForTesting
+  void debugPressStart() {
+    if (!_startButton.enabled) return;
+    onStart(_selected.toList(growable: false));
   }
 }
 
@@ -241,14 +277,16 @@ class _ToolSlot extends PositionComponent with TapCallbacks {
     required this.tool,
     required Vector2 position,
     required this.onTap,
-  }) : super(position: position, size: const Vector2(76, 96));
+  }) : super(position: position, size: Vector2(76, 96));
 
   final ToolDef tool;
   final void Function(String toolId) onTap;
 
   bool selected = false;
 
-  static final _border = Paint()..style = PaintingStyle.stroke..strokeWidth = 2;
+  static final _border = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2;
   static final _fill = Paint();
 
   @override
@@ -314,6 +352,7 @@ class _ToolSlot extends PositionComponent with TapCallbacks {
           Paint()..color = C.mirrorMetal,
         );
       case 'prism':
+        // dart:ui Gradient.linear requires colorStops when colors.length != 2.
         final colors = C.prismSpectrum;
         canvas.drawPath(
           Path()
@@ -326,6 +365,7 @@ class _ToolSlot extends PositionComponent with TapCallbacks {
               Offset(c.dx - 12, c.dy),
               Offset(c.dx + 12, c.dy),
               colors,
+              [for (var i = 0; i < colors.length; i++) i / (colors.length - 1)],
             ),
         );
       case 'frost':
