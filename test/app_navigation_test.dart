@@ -106,6 +106,50 @@ void main() {
       });
     }
 
+    testWidgets('a fresh save can actually reach a battle (AUD-020)', (
+      tester,
+    ) async {
+      // The Loadout demanded exactly kTrayLimit (6) tools while level 1 offers
+      // only 3, so Start Battle could never enable and NO level was playable
+      // from a fresh save. PH-03's gate test passed throughout, because it
+      // verifies that the wrong counts are blocked -- not that the right count
+      // is reachable. Assert reachability, not just the guard.
+      tester.view.physicalSize = const Size(2340, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(const ProviderScope(child: PrismDefenseApp()));
+      await _pump(tester);
+
+      final game = await tapWorldButton(
+        tester,
+        'PLAY',
+        screenW: 2340,
+        screenH: 1080,
+      );
+      final loadout = game.camera.world;
+      expect(loadout, isA<LoadoutWorld>());
+
+      final slots = (loadout as LoadoutWorld).debugSlotCount;
+      expect(
+        slots,
+        greaterThan(0),
+        reason: 'level 1 must offer at least one tool',
+      );
+
+      (loadout).debugSelectAll();
+      await _pump(tester, 5);
+
+      expect(
+        loadout.debugCanStart,
+        isTrue,
+        reason:
+            'picking every offered tool must enable Start Battle; if this '
+            'fails the tray demands more tools than the level provides and '
+            'the game is unplayable',
+      );
+    });
+
     testWidgets('MAP and SETTINGS are reachable too', (tester) async {
       tester.view.physicalSize = const Size(2340, 1080);
       tester.view.devicePixelRatio = 1.0;

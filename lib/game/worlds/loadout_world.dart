@@ -49,7 +49,21 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
 
     final level = Content.I.level(levelId);
     final save = SaveStore.I.state;
-    _trayLimit = kTrayLimit + save.traySlotBonus;
+
+    final unlockedTools = level.availableTools
+        .where(save.unlocked.contains)
+        .toList(growable: false);
+
+    // ADR-008: the tray asks for a full loadout, but early levels offer fewer
+    // tools than the tray holds. Requiring exactly `kTrayLimit` made Start
+    // Battle unreachable at level 1 (3 tools offered, 6 demanded) and no level
+    // was playable at all. Cap the requirement at what the player can actually
+    // pick; once 6+ tools are unlocked this is `kTrayLimit` again, exactly as
+    // PRD-FR-014 describes.
+    _trayLimit = math.min(
+      kTrayLimit + save.traySlotBonus,
+      unlockedTools.length,
+    );
 
     await add(
       WorldButton(
@@ -87,10 +101,6 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
       position: Vector2(rightX, S.screenPad),
     );
     await add(_pickedLabel);
-
-    final unlockedTools = level.availableTools
-        .where(save.unlocked.contains)
-        .toList(growable: false);
 
     final slotSize = Vector2(76, 96);
     const cols = 4;
@@ -150,6 +160,19 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
 
   @visibleForTesting
   bool get debugCanStart => _startButton.enabled;
+
+  /// How many tools this level actually offers the player.
+  @visibleForTesting
+  int get debugSlotCount => _slots.length;
+
+  /// Picks every offered tool. Used to assert that a full pick is REACHABLE,
+  /// which is the half `debugToggle` alone cannot prove (AUD-020).
+  @visibleForTesting
+  void debugSelectAll() {
+    for (final slot in _slots) {
+      if (!_selected.contains(slot.tool.id)) _toggle(slot.tool.id);
+    }
+  }
 
   @visibleForTesting
   void debugPressStart() {
