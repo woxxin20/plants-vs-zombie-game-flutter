@@ -127,6 +127,26 @@ void main() {
 
       expect(r.segments.length, lessThanOrEqualTo(kBeamMaxDepth + 2));
     });
+
+    test('depth-3 cap stops a multi-prism chain (QA #7)', () {
+      // Four prisms in a row: the rightward child of the 4th would be depth 4
+      // and must be rejected, so a shadow past the chain is never hit.
+      final g = emptyGrid()
+        ..[1][1] = 'prism'
+        ..[1][2] = 'prism'
+        ..[1][3] = 'prism'
+        ..[1][4] = 'prism';
+
+      final r = traceAll(
+        grid: g,
+        targets: [target('far', 1, 6)],
+        emitters: [lamp(1, 0)],
+      );
+
+      expect(r.hits.where((h) => h.targetId == 'far'), isEmpty);
+      // Termination proof: call returned and stayed within a bounded segment count.
+      expect(r.segments.length, lessThanOrEqualTo(20));
+    });
   });
 
   group('prism', () {

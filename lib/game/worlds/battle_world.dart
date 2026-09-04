@@ -27,6 +27,9 @@ import '../components/tools/tool_factory.dart';
 import '../light_vs_shadow_game.dart';
 import '../particles/effect_pool.dart';
 import '../particles/particle_definitions.dart' as fx;
+import '../components/hud/overlay_lose.dart';
+import '../components/hud/overlay_pause.dart';
+import '../components/hud/overlay_win.dart';
 
 /// How often a Beam Lamp / Frost Lens fires (spec §6: "20 dmg / 1.2s tick").
 const double kEmitterInterval = 1.2;
@@ -456,16 +459,25 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
 
     // Damage is continuous while a beam rests on a shadow; the 1.2s tick only
     // gates the *sound and spark*, so the numbers in §6 read as dps.
+    // QA #9: the ray hits the first shadow; co-located shadows in the same
+    // tile rect also take damage via this area check.
+    final damaged = <ShadowComponent>{};
     for (final hit in result.hits) {
-      final s = hit.targetId as ShadowComponent;
-      if (s.takeBeamDamage(
-        hit.dmgPerSecond * dt,
-        slow: hit.applySlow,
-        now: time,
-      )) {
-        _killShadow(s);
-      } else if (fired) {
-        _fx.emit(() => fx.hitSpark(s.position.clone()));
+      final primary = hit.targetId as ShadowComponent;
+      final primaryCol = layout.colFromX(primary.position.x);
+      for (final s in shadows) {
+        if (s.lane != primary.lane) continue;
+        if ((layout.colFromX(s.position.x) - primaryCol).abs() > 0.5) continue;
+        if (!damaged.add(s)) continue;
+        if (s.takeBeamDamage(
+          hit.dmgPerSecond * dt,
+          slow: hit.applySlow,
+          now: time,
+        )) {
+          _killShadow(s);
+        } else if (fired) {
+          _fx.emit(() => fx.hitSpark(s.position.clone()));
+        }
       }
     }
 
@@ -530,7 +542,15 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     if (level.unlockReward case final reward?) save.unlocked.add(reward);
     SaveStore.I.flush();
 
-    onWin(stars, coins);
+    game.pauseEngine();
+    _showOverlay(
+      WinOverlay(
+        stars: stars,
+        coins: coins,
+        onMap: () => onWin(stars, coins),
+        onNext: () => onWin(stars, coins),
+      ),
+    );
   }
 
   void _finishLost() {
@@ -546,18 +566,44 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
           alternate: true,
           repeatCount: 3,
         ),
-        onComplete: onLose,
+        onComplete: () {
+          game.pauseEngine();
+          _showOverlay(LoseOverlay(onTryAgain: onLose, onMap: onLose));
+        },
       ),
     );
   }
 
   /// Spec §24 edge cases 10/11/15: lifecycle and rotation pause the sim without
-  /// tearing the tree down.
-  void pause() {
-    if (state == GameState.playing) state = GameState.paused;
+  /// tearing the tree down. Also mounts the Pause overlay (DS-075).
+  void pause({bool showOverlay = true}) {
+    if (state != GameState.playing) return;
+    state = GameState.paused;
+    game.pauseEngine();
+    if (showOverlay) {
+      _showOverlay(
+        PauseOverlay(onResume: resume, onRestart: onLose, onHome: onLose),
+      );
+    }
   }
 
   void resume() {
-    if (state == GameState.paused) state = GameState.playing;
+    if (state != GameState.paused) return;
+    _dismissOverlay();
+    state = GameState.playing;
+    game.resumeEngine();
+  }
+
+  Component? _activeOverlay;
+
+  void _showOverlay(Component overlay) {
+    _dismissOverlay();
+    _activeOverlay = overlay;
+    game.camera.viewport.add(overlay);
+  }
+
+  void _dismissOverlay() {
+    _activeOverlay?.removeFromParent();
+    _activeOverlay = null;
   }
 }

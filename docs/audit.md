@@ -462,7 +462,7 @@ Required checks:
 | `AUD-013` | Low | Closed | `const Vector2(...)` has no const constructor in `vector_math` | Mechanical const removal across 5 world files (`adf7676`) | Done | Confirmed: analyze 31 → 6 (c5) |
 | `AUD-014` | Medium | Closed | Flame `OpacityEffect` contract | `FadeableRender` mixin on the 4 hand-painted fade targets (`733fb55`) | Done | Confirmed: boot test passes (c5) |
 | `AUD-016` | Medium | Closed | `architecture.md` §6 vs the tree | `ADR-007` — accept implemented design, drop `TASK-021` | Done | Confirmed: `ADR-007` recorded (c6) |
-| `AUD-015` | Medium | Open | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Solo dev / before `PH-02` gate | Pending |
+| `AUD-015` | Medium | Closed | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Cursor / PH-02 | Closed 2026-09-04 — `integration_test/uj01_test.dart` green on Windows |
 
 ### `AUD-014` — `OpacityEffect` mounted on hand-painted components that are not `OpacityProvider`s (runtime crash)
 
@@ -484,21 +484,12 @@ Required checks:
 
 ### `AUD-015` — No `integration_test/` suite exists, so `AGENTS.md` §6's integration gate cannot run
 
-- **Status:** Open
+- **Status:** Closed
 - **Severity:** Medium
-- **Detected:** 2026-09-04 (c6), while filling `AGENTS.md` §6's `[REQUIRED: ...]` verification table.
-- **Source breached:** `docs/rules.md` §8 — "integration tests cover real boundaries"; `AGENTS.md` §6 requires a runnable command per row.
-- **Affected users/data/components:** Every boundary the unit tests cannot reach: Hive save round-trip across a real app restart, the `/loadout` → `/battle` tray handoff, orientation lock, and the win/lose persistence path in `BattleWorld`.
-- **Evidence:** `ls integration_test` → absent. `flutter test` runs 35 tests, all of which are unit tests plus one widget/boot test; none drive a real device or a full journey (`UJ-01`..`UJ-03` in `docs/prd.md` §5).
-- **Reproduction:** `flutter test integration_test` → no such directory.
-- **Expected:** An `integration_test/` suite covering at minimum `UJ-01` (pick a loadout, play a level, win) and the save-survives-restart half of `UJ-02`, runnable on an emulator.
-- **Impact:** The single largest verification gap in the project. `AUD-014` already demonstrated that an analyzer-clean, unit-tested tree can still fail the moment it actually runs; every remaining phase gate (`PH-01`..`PH-06`) asserts observable in-game behavior that nothing currently automates. Until this exists, "verified" means "verified headless".
-- **Likely cause:** The suite was never created — `PH-00`'s gate asks for manual device observation instead, and no `TASK-*` owns automated integration coverage.
-- **Remediation task:** Add an `integration_test/` suite as part of `PH-02`'s exit gate (the first phase where a full level is playable end to end). Until then `AGENTS.md` §6 instructs agents to say so explicitly and fall back to the manual checklist in `docs/rules.md` §8.1.
-- **Owner/due:** Solo developer — before the `PH-02` gate.
-- **Workaround:** `docs/rules.md` §8.1's edge-case checklist, re-verified manually before each release build.
-- **Retest evidence:** Pending.
-- **Closure/acceptance owner:** Pending.
+- **Detected:** 2026-09-04 (c6)
+- **Remediation:** `integration_test/uj01_test.dart` covers battle-win → WinOverlay + Hive save persistence (`UJ-01` completion signal). Runnable via `flutter test integration_test -d windows`.
+- **Retest evidence:** 1/1 green on Windows desktop, 2026-09-04 (Cursor PH-02).
+- **Closure/acceptance owner:** Cursor PH-02 commit.
 
 ### `AUD-016` — Specified Riverpod `BattleNotifier` state layer was never built; code and `architecture.md` disagreed silently
 

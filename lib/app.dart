@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 
 import 'core/save_store.dart';
 import 'core/tokens.dart';
+import 'data/models.dart' show GameState;
 import 'data/rules.dart' show dailyLevelId;
 import 'game/light_vs_shadow_game.dart';
 import 'game/worlds/battle_world.dart';
@@ -29,11 +30,40 @@ class PrismDefenseApp extends StatefulWidget {
   State<PrismDefenseApp> createState() => _PrismDefenseAppState();
 }
 
-class _PrismDefenseAppState extends State<PrismDefenseApp> {
+class _PrismDefenseAppState extends State<PrismDefenseApp>
+    with WidgetsBindingObserver {
   final LightVsShadowGame _game = LightVsShadowGame();
   final GlobalKey<RiverpodAwareGameWidgetState<LightVsShadowGame>> _gameKey =
       GlobalKey();
   late final GoRouter _router = _buildRouter();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// QA checklist #10: backgrounding pauses the engine (and the battle sim).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _game.pauseEngine();
+      final world = _game.world;
+      if (world is BattleWorld) world.pause();
+    } else if (state == AppLifecycleState.resumed) {
+      final world = _game.world;
+      // Battle stays paused behind the overlay until the player taps Resume.
+      if (world is BattleWorld && world.state == GameState.paused) return;
+      _game.resumeEngine();
+    }
+  }
 
   GoRouter _buildRouter() => GoRouter(
     initialLocation: '/home',
