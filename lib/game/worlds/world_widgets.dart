@@ -4,9 +4,10 @@
 library;
 
 import 'dart:math' as math;
-import 'dart:ui';
+import 'dart:ui' hide TextStyle;
 
 import 'package:flame/components.dart';
+import 'package:flutter/painting.dart' show TextStyle;
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 

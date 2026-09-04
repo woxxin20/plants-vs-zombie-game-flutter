@@ -1,14 +1,12 @@
 /// Shared low-level drawing helpers for the HUD layer.
 ///
-/// `T.*` (lib/core/tokens.dart) is built from `dart:ui`'s `TextStyle`, not
-/// Flutter's `painting.TextStyle` — an offline-fonts choice (ADR-005) that
-/// also means Flame's `TextComponent`/`TextPaint` (which require the latter)
-/// can't consume a `T.*` token without either modifying tokens.dart
-/// (forbidden by the HUD task) or adding a `flutter/painting.dart`
-/// dependency the tokens file itself doesn't take. `HudLabel` instead paints
-/// a raw `dart:ui.Paragraph`, pushing a `T.*` style — and optionally a `C.*`
-/// colour on top of it via a second `pushStyle` — so every HUD label still
-/// reads its typography and colour from tokens.dart alone, nothing literal.
+/// `T.*` (lib/core/tokens.dart) is `package:flutter/painting.dart`'s
+/// `TextStyle` (AUD-011) — the type Flame's own `TextPaint` expects too.
+/// `HudLabel` still paints a raw `dart:ui.Paragraph` instead of a Flame
+/// `TextComponent`/`TextPaint`, so it converts a `T.*` style to a
+/// `dart:ui.TextStyle` via `TextStyle.getTextStyle()` before pushing it —
+/// every HUD label still reads its typography and colour from tokens.dart
+/// alone, nothing literal.
 ///
 /// `paintSunburst`/`paintPennant`/`paintPauseBars`/`paintStar` are the
 /// hand-drawn glyphs spec §10.5 requires in place of Material icons, shared
@@ -16,10 +14,12 @@
 library;
 
 import 'dart:math' as math;
-import 'dart:ui';
+import 'dart:ui' hide TextStyle;
+import 'dart:ui' as ui show TextStyle;
 
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart' show OpacityProvider;
+import 'package:flutter/painting.dart' show TextStyle;
 
 /// A single line of `T.*`-styled text, drawn as a raw `dart:ui.Paragraph`.
 ///
@@ -64,10 +64,11 @@ class HudLabel extends PositionComponent implements OpacityProvider {
   }
 
   void _rebuild() {
-    final builder = ParagraphBuilder(ParagraphStyle())..pushStyle(_style);
+    final builder = ParagraphBuilder(ParagraphStyle())
+      ..pushStyle(_style.getTextStyle());
     final c = _color;
     if (c != null) {
-      builder.pushStyle(TextStyle(color: c.withValues(alpha: c.a * _opacity)));
+      builder.pushStyle(ui.TextStyle(color: c.withValues(alpha: c.a * _opacity)));
     }
     builder.addText(_text);
     _paragraph = builder.build()

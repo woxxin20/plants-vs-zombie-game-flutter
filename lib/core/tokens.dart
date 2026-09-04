@@ -6,7 +6,7 @@
 /// never material.dart / cupertino.dart (RULE-FORBID-001).
 library;
 
-import 'dart:ui';
+import 'package:flutter/painting.dart';
 
 // ---------------------------------------------------------------------------
 // Colours — spec §10.1
