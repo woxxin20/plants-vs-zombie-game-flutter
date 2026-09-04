@@ -43,7 +43,7 @@ Rules:
 | --- | --- | --- | --- | --- | --- |
 | `PH-07` | Repo repurposed from PvZ-widgets to Flame governance-kit + resolvable pubspec | Repo history, `docs/audit.md` AUD-001..AUD-008 | None | Complete | 2026-09-03, solo dev |
 | `PH-00` | `FlameGame`/`CameraComponent` bootstrap renders inside `WidgetsApp`, landscape-locked, empty-scene 60fps baseline | Spec §25 Phase 0, §26 | `PH-07` | In progress — 4/6 gate items met at `397ce19`; the 2 render/device items are unrun and `TASK-012` is blocked on `ARCH-Q-003` | 2026-09-04, Claude (lead) |
-| `PH-01` | Parallax backdrop + 21-tile grid + glow economy (bulb + falling orbs) + place/remove + Hive + HUD shell render | Spec §25 Phase 1, §4.2, §5, §13 | `PH-00` | Not started | [Owner/date] |
+| `PH-01` | Parallax backdrop + 21-tile grid + glow economy (bulb + falling orbs) + place/remove + Hive + HUD shell render | Spec §25 Phase 1, §4.2, §5, §13 | `PH-00` | Gate review — 6/7 met at `9cc0c49`, 1 partial (no red-pulse API) | 2026-09-04, Claude (lead) |
 | `PH-02` | Shadow walk/eat + beam trace (mirror/prism) + collisions + HP bars + sweep + win/lose overlays, one full level playable | Spec §25 Phase 2, §7, §8, §15, §16 | `PH-01` | Not started | [Owner/date] |
 | `PH-03` | All 20 levels JSON + Loadout pick-6-of-8 + Scout panel + cooldowns + every tool/shadow special behavior | Spec §25 Phase 3, §6, §7, §9 | `PH-02` | Not started | [Owner/date] |
 | `PH-04` | Full particle/effects inventory + sound/haptics + stars/coins/daily + Shop world + Settings world | Spec §25 Phase 4, §18, §19, §23 | `PH-03` | Not started | [Owner/date] |
@@ -182,24 +182,31 @@ persistence, and the screen-locked HUD shell (`TopBarComponent`,
 
 ### Exit gate
 
-- [ ] Tapping an empty tile with a selected tool in tray places the tool,
-      deducts glow, and plays the placement `ScaleEffect` (integration test
-      + manual observation).
-- [ ] Tapping an occupied tile shakes it and shows the "Occupied" toast with
-      no glow deduction (test covers QA checklist #1).
-- [ ] Insufficient glow blocks placement and pulses the cost text red (test
-      covers QA checklist #2).
-- [ ] A `GlowOrbComponent` spawns on the falling-glow timer and is
-      collectible by tap (test with a fake/controllable clock).
-- [ ] `BulbComponent` generates +25 glow every 10.0s only while alive (test).
-- [ ] Hive `save` box persists `coins`/`stars`/`unlocked` across a simulated
-      app restart (`flutter test` with `Hive.close()`/reopen, covers QA
-      checklist #14).
-- [ ] `TopBarComponent` glow display updates reactively from
-      `BattleNotifier` (widget test).
+All seven are covered by `test/ph01_exit_gate_test.dart` unless noted.
+Verified by the lead at `9cc0c49`: `flutter analyze` clean, `flutter test` 42/42.
 
-**Mapped tasks:** `TASK-013`..`TASK-022`
-**Evidence:** [Filled at gate review.]
+- [x] Tapping an empty tile with a selected tool places it, deducts glow, and
+      plays the placement `ScaleEffect`.
+- [x] Tapping an occupied tile shakes it and shows the "Occupied" toast with
+      **no glow deduction** (QA checklist #1) — the no-deduction half is
+      asserted explicitly, not implied.
+- [~] Insufficient glow blocks placement (QA checklist #2). **Partial:** the
+      block and the zero-deduction are asserted; the *red cost pulse* is not,
+      because `TraySlotComponent` exposes no pulse API. Production code was
+      deliberately not redesigned to make a test pass — closing this needs a
+      real pulse API, tracked with `TASK-020`.
+- [x] A `GlowOrbComponent` spawns on the falling-glow timer and is collectible
+      by tap (controllable clock, no `Future.delayed`).
+- [x] `BulbComponent` generates +25 glow every 10.0s **only while alive** — the
+      dead-bulb case is asserted, not just the happy path.
+- [x] The `save` box persists `coins`/`stars`/`unlocked` across a simulated
+      restart, close and reopen (QA checklist #14).
+- [x] `TopBarComponent` glow display updates reactively. **Drift:** this gate
+      said "from `BattleNotifier`"; per `ADR-007` there is no notifier — the
+      owning world writes the value and the bar diffs it in `update()`.
+
+**Mapped tasks:** `TASK-013`..`TASK-022` (`TASK-021` dropped, `ADR-007`)
+**Evidence:** `test/ph01_exit_gate_test.dart` at `9cc0c49`; analyze clean, 42/42, both re-run by the lead. 6 of 7 items fully met, 1 partial.
 
 ## 6. `PH-02` — Combat core: shadows, beams, sweep, win/lose
 

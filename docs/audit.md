@@ -167,6 +167,8 @@ section becomes meaningful starting at `PH-00`'s exit gate (empty-scene
 
 | Date | Check/command | Scope/environment | Result | Duration/notes | Finding |
 | --- | --- | --- | --- | --- | --- |
+| 2026-09-04 (c6) | `flutter analyze` | Local Windows, `HEAD` `9cc0c49` | Pass — `No issues found!` | Re-run by the lead, not taken from the worker's report | None |
+| 2026-09-04 (c6) | `flutter test` | Local Windows, `HEAD` `9cc0c49` | Pass — 42/42 (+7 `PH-01` gate tests) | Re-run by the lead; diff verified test-only (1 file, +285 lines, zero production change) | `PH-01` gate 6/7, gate 3 partial |
 | 2026-09-03 | `flutter --version` | Local Windows | Pass — 3.47.0 stable | Briefed baseline, not re-run this pass | None |
 | 2026-09-03 | `flutter pub get` | Local Windows, rewritten `pubspec.yaml` | Pass — resolved `flame 1.38.2`, `flame_audio 2.12.2`, `flame_riverpod 5.4.21`, `flutter_riverpod 2.6.1`, `go_router 16.3.0`, `hive_ce_flutter 2.3.4`, `google_mobile_ads 6.0.0`, `in_app_purchase 3.3.0` (per brief) | Briefed baseline, not re-run this pass | None |
 | 2026-09-03T11:04Z | `flutter analyze` | Local Windows, current `lib/` (partial, uncommitted code) | Fail — 1 error, 1 warning, 1 info (see §8) | Run live during this audit, ~15s | `AUD-008` |
@@ -459,6 +461,7 @@ Required checks:
 | `AUD-012` | Low | Closed | Incomplete `TASK-007`; missing import | Import fix (`e8a179d`, Cursor); `lib/app.dart` shell + 2 lints (`adf7676`, `733fb55`, Claude) | Done | Confirmed: analyze clean, tests 35/35 (c5) |
 | `AUD-013` | Low | Closed | `const Vector2(...)` has no const constructor in `vector_math` | Mechanical const removal across 5 world files (`adf7676`) | Done | Confirmed: analyze 31 → 6 (c5) |
 | `AUD-014` | Medium | Closed | Flame `OpacityEffect` contract | `FadeableRender` mixin on the 4 hand-painted fade targets (`733fb55`) | Done | Confirmed: boot test passes (c5) |
+| `AUD-016` | Medium | Closed | `architecture.md` §6 vs the tree | `ADR-007` — accept implemented design, drop `TASK-021` | Done | Confirmed: `ADR-007` recorded (c6) |
 | `AUD-015` | Medium | Open | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Solo dev / before `PH-02` gate | Pending |
 
 ### `AUD-014` — `OpacityEffect` mounted on hand-painted components that are not `OpacityProvider`s (runtime crash)
@@ -496,6 +499,24 @@ Required checks:
 - **Workaround:** `docs/rules.md` §8.1's edge-case checklist, re-verified manually before each release build.
 - **Retest evidence:** Pending.
 - **Closure/acceptance owner:** Pending.
+
+### `AUD-016` — Specified Riverpod `BattleNotifier` state layer was never built; code and `architecture.md` disagreed silently
+
+- **Status:** Closed — resolved by `ADR-007` in favour of the implemented design.
+- **Severity:** Medium
+- **Detected:** 2026-09-04 (c6), while scoping the `PH-01` gate against the tree.
+- **Source breached:** `docs/architecture.md` §6 and the module-boundary table; `Spec §13` "State bridge to Riverpod".
+- **Affected users/data/components:** `lib/state/` (absent entirely), every `lib/game/components/hud/*` component, `BattleWorld`.
+- **Evidence:** `find lib -name "*.dart"` lists no `lib/state/` path. `grep -rn "RiverpodComponentMixin|ref\." lib` returns nothing. `architecture.md:131,154-155,172-178` specify `BattleNotifier extends Notifier<BattleState>` and the rule "HUD reads `BattleNotifier` for display values, never simulation objects", while `TopBarComponent.glow` is in fact assigned directly by `BattleWorld` and diffed in `update()`.
+- **Reproduction:** `grep -rn "RiverpodComponentMixin" lib` at `9cc0c49` — no matches.
+- **Expected:** One design, documented. Either the notifier exists, or the document says it does not.
+- **Impact:** A whole specified module missing is the `AUD-008` failure mode repeating — an agent trusting `architecture.md` would have built a parallel state layer beside a working one, or "fixed" working code to match a document nobody had reconciled. It also made `TASK-021` unstartable without an architecture decision, which is why it was fenced out of the `PH-01` Cursor assignment rather than guessed at.
+- **Likely cause:** `architecture.md` was authored from the spec in one pass at `PH-07`, before any gameplay code existed; the code then took a simpler path and no one reconciled the two.
+- **Remediation task:** `ADR-007` — accept the implemented design, strike the `lib/state` module row, re-point the HUD row, drop `TASK-021`.
+- **Owner/due:** Repo owner (decision, 2026-09-04); Claude (lead, drafting).
+- **Workaround:** N/A.
+- **Retest evidence:** 2026-09-04 (c6) — `ADR-007` recorded; `architecture.md` module table amended; `TASK-021` dropped from the plan. `flutter analyze` clean, `flutter test` 42/42 at `9cc0c49`.
+- **Closure/acceptance owner:** Repo owner, 2026-09-04 (c6).
 
 ## 15. Gate decision
 

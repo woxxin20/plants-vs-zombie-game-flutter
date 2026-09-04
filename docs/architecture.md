@@ -170,11 +170,10 @@ the lowest layer and everything may depend on it. What is forbidden is
 | Module | Owns | Public interface | May depend on | Must not depend on |
 | --- | --- | --- | --- | --- |
 | `lib/data` | `ToolDef`, `ShadowDef`, `Level`, `Wave`, `SaveState` models; JSON loading (`levels_loader.dart`) | Plain Dart classes + `Future<T> load...()` functions | `dart:convert`, `flutter/services.dart` (asset bundle only) | `flame`, `flutter/material.dart`, `flutter/cupertino.dart`, `lib/state`, `lib/game` |
-| `lib/state` | `BattleNotifier`/`BattleState` (glow, wave index, coins, stars, save mirror) | Riverpod `Notifier`/provider | `lib/data`, `flutter_riverpod`, `hive_ce` (via `lib/core/hive.dart`) | `lib/game` (components must depend on state, not the reverse), `flame` |
 | `lib/core` | App bootstrap (`main.dart`), theme tokens, `go_router` route table, Hive box init, `FlameAudio` pool setup | `theme.dart` constants, `router.dart` `GoRouter` instance, `hive.dart` init function | `lib/data`, `lib/state`, `lib/game` (composition root wires everything) | Nothing below it — this is the composition root |
 | `lib/game/worlds` | One `World` subclass per screen (Home/Map/Loadout/Battle/Shop/Settings); `BattleWorld` owns `WaveManagerComponent` | `World` subclasses consumed by `LightVsShadowGame`/`GameWidget` | `lib/game/components`, `lib/game/particles`, `lib/state`, `lib/data` | Other worlds' internals directly (a world never reaches into another world's component tree) |
 | `lib/game/components/tools` | The 8 `ToolComponent` subclasses (Bulb, BeamLamp, Mirror, Prism, FrostLens, Wall, Bomb, TwinBulb) | `ToolComponentFactory.create(id, row, col, ...)` | `lib/data` (ToolDef), `lib/game/particles` | `lib/game/worlds` (tools don't know which world hosts them) |
-| `lib/game/components/hud` | `TopBarComponent`, `RightPanelComponent`, `TraySlotComponent`, `ButtonComponent`, `ToastComponent`, pause/win/lose overlays — all live on `camera.viewport` | Flame components added to `camera.viewport` | `lib/state` (reads `BattleNotifier` for display values), `lib/core/theme.dart` | Direct grid/shadow internals — HUD reads state, never simulation objects |
+| `lib/game/components/hud` | `TopBarComponent`, `RightPanelComponent`, `TraySlotComponent`, `ButtonComponent`, `ToastComponent`, pause/win/lose overlays — all live on `camera.viewport` | Flame components added to `camera.viewport` | its owning world (which writes display values onto it — `ADR-007`), `lib/core/tokens.dart` | Reaching back into the world's simulation objects — a HUD component renders what it is given and asks for nothing |
 | `lib/game/particles` | `particle_definitions.dart` (the 9-particle inventory, `Spec §18.1`), `effect_pool.dart` (pooling helper, `Spec §18.3`) | Factory functions returning `ParticleSystemComponent` | `flame` | `lib/state`, `lib/data` |
 | `assets/` (data+levels+audio) | Bundled read-only content | JSON schema (§8 below), audio files | — (not code) | Never written to at runtime |
 
@@ -695,6 +694,19 @@ once the test suite exists, not here.
 - **Rules created/changed:** `rules.md` must list `MaterialApp`, `CupertinoApp`, and any `material.dart`/`cupertino.dart` widget import as forbidden, with `AdWidget` as the sole documented exception.
 - **Supersedes / superseded by:** N/A.
 
+### `ADR-007` — Direct callbacks and `SaveStore` supersede the Riverpod `BattleNotifier` state layer
+
+- **Status:** Accepted
+- **Date/owner:** 2026-09-04, repo owner (decision), Claude (lead, drafting)
+- **Drivers:** `Spec §13` "State bridge to Riverpod"; the implemented tree at commit `9cc0c49`; `AGENTS.md` §9 (state management may not change without an approved ADR).
+- **Context:** §6 of this document, the module table (§"`lib/state`"), and the `lib/game/components/hud` row all specify a Riverpod `BattleNotifier extends Notifier<BattleState>` in `lib/state/`, with the rule "HUD reads `BattleNotifier` for display values, never simulation objects". **None of it was ever built.** `lib/state/` does not exist; there is not one `ref.` or `RiverpodComponentMixin` in `lib/`. The shipped design instead has `BattleWorld` own the simulation and write display values straight onto its HUD components (`TopBarComponent.glow`, diffed in `update()`), with persistence read and written directly through the `SaveStore.I` singleton. This was discovered at the `PH-01` gate: the specified architecture and the working code had silently disagreed since `PH-07`.
+- **Options considered:** (a) Build `BattleNotifier` as specified and refactor every HUD component onto `RiverpodComponentMixin` — restores spec §13, but is a refactor of working, now test-covered code that produces no player-visible change. (b) Accept the implemented design and amend this document (chosen). (c) Leave the conflict open — rejected: every agent reading this file would keep re-deriving the same contradiction, which is exactly how `AUD-008` happened.
+- **Decision:** The implemented design wins. `lib/state/` is removed from the architecture; `BattleWorld` remains the owner of battle simulation state, HUD components are dumb renderers written to by their owner, and `SaveStore` remains the single persistence seam. `flame_riverpod`'s `RiverpodGameMixin` stays on `LightVsShadowGame` (it costs nothing and `RiverpodAwareGameWidget` already depends on it), but no game state flows through Riverpod.
+- **Consequences:** One less layer and no provider wiring, appropriate for a single-player offline game with no cross-widget state sharing and no server. The cost is that HUD components are only testable through their owning world — acceptable, and `test/ph01_exit_gate_test.dart` demonstrates it by driving `TopBarComponent` directly. If a later phase needs state shared across two worlds (none is currently foreseen), revisit this ADR rather than reaching between worlds.
+- **Migration/rollback:** No code change — this ADR documents what the code already does. Rollback means implementing option (a), which nothing currently depends on.
+- **Rules created/changed:** The `lib/state` module row is struck from §"Module boundaries"; the `lib/game/components/hud` row's dependency changes from `lib/state` to "its owning world". `TASK-021` is dropped from `docs/implementation_plan.md`.
+- **Supersedes / superseded by:** Supersedes the `BattleNotifier` provisions of §6 and the module table. Does not affect `ADR-001`..`ADR-006`.
+
 ## 17. Open architecture questions
 
 | ID | Question | Options | Impact | Owner | Due/blocks |
@@ -709,4 +721,5 @@ once the test suite exists, not here.
 
 | Date | ADR/sections | Reason | PRD/rule/plan links | Owner |
 | --- | --- | --- | --- | --- |
+| 2026-09-04 | `ADR-007` (new); §6 module table (`lib/state` row struck, `lib/game/components/hud` row re-pointed) | The specified Riverpod `BattleNotifier` layer was never built and the working code uses direct callbacks + `SaveStore`; resolved in favour of the code per the repo owner's decision rather than leaving the contradiction open | `AUD-016`; `TASK-021` dropped; commit `9cc0c49` | Repo owner (decision), Claude (lead) |
 | 2026-09-03 | All sections; `ADR-001`–`ADR-006` | Filled the architecture blueprint from `LIGHT_vs_SHADOW_Prism_Defense_Flame_Spec.md` (§§13-22, 24, 26) and the resolved `pubspec.yaml`/`pubspec.lock` versions, replacing all `[REQUIRED: ...]` placeholders | `docs/GOVERNANCE.md` ID scheme; `docs/prd.md` (not yet completed — cited by spec section instead of `PRD-*` IDs pending its completion) | Solo developer (repo owner) |
