@@ -386,9 +386,27 @@ Required checks:
 - **Expected:** `T`'s static fields are `package:flutter/painting.dart` `TextStyle` instances so `Text(style: T.h1)`, `T.h1.copyWith(...)`, and const contexts all type-check.
 - **Impact:** Blocks the `STATE.md` goal "`flutter analyze` clean across `lib/`"; 6 of 7 world screens cannot compile.
 - **Likely cause:** Copy-paste of the `TextStyle` builder without importing `package:flutter/painting.dart` (or `package:flutter/widgets.dart`), so the analyzer picked the only `TextStyle` in scope (`dart:ui`'s).
-- **Remediation task:** Reconciles `TASK-008` (file is `lib/core/tokens.dart` in reality, not the planned `lib/core/theme.dart` — naming drift, no action needed beyond noting it here and in `implementation_plan.md`). Assigned to Cursor via `.ai/inbox/gnhf-assignment.md` (c2).
+- **Remediation task:** Reconciles `TASK-008` (file is `lib/core/tokens.dart` in reality, not the planned `lib/core/theme.dart` — naming drift, no action needed beyond noting it here and in `implementation_plan.md`). c2's assignment (tokens.dart import swap only) returned `IMPLEMENTATION_BLOCKED` from Cursor (see `.ai/inbox/cursor-evidence.md`): the 1-file scope missed two consumer files that also declare their own `TextStyle` symbol. c3 re-scoped to a verified 3-file fix — `lib/core/tokens.dart` (import swap), `lib/game/worlds/world_widgets.dart` (`hide TextStyle` + painting import so its own `TextStyle?` fields agree with `T.*`), and `lib/game/components/hud/hud_paint.dart` (`HudLabel` accepts painting's `TextStyle`, converts to `dart:ui.TextStyle` via the SDK's `TextStyle.getTextStyle()` before `ParagraphBuilder.pushStyle`). Planner applied this diff locally, ran `flutter analyze`/`flutter test`, confirmed 56→34 issues with zero TextStyle-related errors remaining, then reverted (planner does not commit code) — reassigned to Cursor via `.ai/inbox/gnhf-assignment.md` (c3).
 - **Owner/due:** Cursor implementer, immediately (next slice).
 - **Workaround:** None — every affected screen fails to compile until fixed.
+- **Retest evidence:** 2026-09-04 (c3, planner verification, reverted before handoff) — applying the 3-file diff drops `flutter analyze` from 56 to 34 issues; all `argument_type_not_assignable`/`copyWith`/TextStyle-const errors gone; `flutter test` still 34/34 green. Formal closure pending Cursor's own commit + evidence file.
+- **Closure/acceptance owner:** Pending Cursor's implementation.
+
+### `AUD-013` — `const Vector2(...)` used across five world screens, but `vector_math`'s `Vector2` has no `const` constructor
+
+- **Status:** Open
+- **Severity:** Low
+- **Detected:** 2026-09-04T00:00+05:30, c3 planning pass (surfaced while verifying `AUD-011`'s fix)
+- **Source breached:** N/A — pre-existing bug, not a regression from this cycle's work.
+- **Affected users/data/components:** `lib/game/worlds/{home_world,loadout_world,map_world,settings_world,shop_world}.dart` — every `const Vector2(x, y)` / `static const _cardSize = Vector2(...)` in these five files.
+- **Evidence:** `flutter analyze` on a clean `AUD-011`-fixed tree still reports 22 issues (11 `const_initialized_with_non_constant_value`/`const_with_non_const` pairs) at `home_world.dart:89,101,154`, `loadout_world.dart:66,94,117,244`, `map_world.dart:31,95`, `settings_world.dart:106,173`, `shop_world.dart:53,66`. `vector_math`'s `Vector2` (`vector_math/lib/src/vector_math/vector2.dart`) is backed by a `Float32List` and declares no `const` constructor at all — these were already broken before `AUD-011`'s fix touched anything; they are additive, not caused by it.
+- **Reproduction:** `flutter analyze` after applying `AUD-011`'s 3-file fix — 34 total issues remain, of which these 22 are `AUD-013` and the other 12 are `AUD-012`.
+- **Expected:** Each `const Vector2(...)` becomes a plain (non-const) `Vector2(...)`, and any `static const _field = Vector2(...)` becomes `static final _field = Vector2(...)`.
+- **Impact:** Blocks `flutter analyze` clean in the same five files `AUD-011` targets, but is an unrelated defect class (const-constructibility, not type mismatch) — do not conflate the two fixes in one task.
+- **Likely cause:** Author assumed `Vector2` supports `const` (common in hand-rolled vector types); `vector_math`'s does not.
+- **Remediation task:** Next planning slice after `AUD-011`/`TASK-008` lands — mechanical `const` → non-const edit across the five files, no `TASK-*` number assigned yet.
+- **Owner/due:** Claude planner, next cycle.
+- **Workaround:** None — affected screens fail to compile until fixed.
 - **Retest evidence:** Pending.
 - **Closure/acceptance owner:** Pending.
 
@@ -424,16 +442,17 @@ Required checks:
 | `AUD-008` | Medium | Closed | This audit's brief vs reality | Reconcile plan + fix `Curves` import | Solo dev | Confirmed fixed (c2) |
 | `AUD-009` | High | Closed | Engineering practice | Commit working tree checkpoint | Solo dev | Confirmed committed (c1/c2) |
 | `AUD-010` | Info | Accepted risk | Project directive | None (covered by `AUD-009`) | Solo dev | N/A |
-| `AUD-011` | Medium | Open | `lib/core/tokens.dart` vs its own doc comment | Assigned to Cursor, `TASK-008` | Cursor / immediately | Pending |
+| `AUD-011` | Medium | Open | `lib/core/tokens.dart` vs its own doc comment | Re-scoped to 3 files, verified, reassigned to Cursor as `TASK-008` (c3) | Cursor / immediately | Planner-verified, Cursor pending |
 | `AUD-012` | Low | Open | Incomplete `TASK-007`; missing import | Next planning slice, `TASK-007` | Claude planner / next cycle | Pending |
+| `AUD-013` | Low | Open | `const Vector2(...)` has no const constructor in `vector_math` | Next planning slice, mechanical const removal | Claude planner / next cycle | Pending |
 
 ## 15. Gate decision
 
 - **Decision:** `No-go` (expected — `PH-00` exit gate is not yet met: `flutter analyze` is not clean).
 - **Scope of decision:** `PH-00` exit gate readiness.
-- **Blocking findings:** `AUD-011` (Medium — 44 of 49 current `flutter analyze` errors) is the task assigned this cycle; `AUD-012` (Low — remaining 5 errors, `lib/app.dart` missing + one import) is the next planning slice; `AUD-002`, `AUD-005`, `AUD-007` remain open and also block `PH-00`'s exit gate.
+- **Blocking findings:** `AUD-011` (Medium — re-scoped this cycle to a verified 3-file fix, 22 TextStyle-related errors, reassigned to Cursor); `AUD-012` (Low — 12 remaining errors, `lib/app.dart` missing + one import, next planning slice); `AUD-013` (Low — 22 pre-existing `const Vector2` errors, newly surfaced while verifying `AUD-011`, next planning slice); `AUD-002`, `AUD-005`, `AUD-007` remain open and also block `PH-00`'s exit gate.
 - **Accepted risks:** `AUD-001`, `AUD-003`, `AUD-010` — all Low/Info, deliberate and documented substitutions.
-- **Required follow-up:** Land `TASK-008` (`AUD-011`) via Cursor this cycle; next planning cycle assigns `TASK-007`/`AUD-012`; then close `AUD-002`/`AUD-005`/`AUD-007` before claiming the `PH-00` exit gate.
+- **Required follow-up:** Land `TASK-008` (`AUD-011`, re-scoped) via Cursor this cycle; next planning cycles assign `TASK-007`/`AUD-012` and the `AUD-013` const fix; then close `AUD-002`/`AUD-005`/`AUD-007` before claiming the `PH-00` exit gate.
 - **Decision owner/date:** Solo developer (repo owner), 2026-09-03.
 
 ## 16. Audit history
@@ -442,3 +461,4 @@ Required checks:
 | --- | --- | --- | --- | --- | --- |
 | 2026-09-03 | Baseline (pre-`PH-00`) | No-go | 0/1/4/2 | Claude Sonnet 5 | First audit. Found the working tree already contains partial, uncommitted, unverified game code beyond what this audit was briefed to expect — see `AUD-008`. Most urgent finding is `AUD-009` (uncommitted work, High). |
 | 2026-09-03 (c2) | `PH-00` in progress | No-go | 0/0/2/1 | Claude Sonnet 5 (planner) | `AUD-008`/`AUD-009` closed (fixed/committed). `flutter analyze` now shows 49 errors from newer code — root-caused to one file (`AUD-011`, assigned this cycle) plus a small remainder (`AUD-012`, next cycle). |
+| 2026-09-04 (c3) | `PH-00` in progress | No-go | 0/0/2/2 | Claude Sonnet 5 (planner) | Cursor tried c2's 1-file `AUD-011` fix, returned `IMPLEMENTATION_BLOCKED` (2 consumer files also need edits). Planner traced every consumer, verified a 3-file fix locally (56→34 issues, reverted before handoff), reassigned to Cursor. Surfaced a new pre-existing defect (`AUD-013`, `const Vector2` has no const constructor) while verifying — it accounts for the gap between the c2 assignment's optimistic ≤12 target and the real 34. |
