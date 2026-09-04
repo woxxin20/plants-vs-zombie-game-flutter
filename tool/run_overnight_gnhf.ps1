@@ -18,6 +18,16 @@ function Get-Head {
   return (git -C $repo rev-parse --short HEAD).Trim()
 }
 
+function Get-MeaningfulBytes {
+  $runRoot = Join-Path $repo '.gnhf\runs'
+  if (-not (Test-Path $runRoot)) { return 0L }
+  $total = 0L
+  Get-ChildItem -Recurse -File $runRoot -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -match '^(iteration-.*\.jsonl|gnhf\.log|notes\.md)$' } |
+    ForEach-Object { $total += $_.Length }
+  return $total
+}
+
 function Save-DirtyWork([string]$role, [string]$reason) {
   $dirty = git -C $repo status --porcelain
   if (-not $dirty) { return }
@@ -68,6 +78,8 @@ function Invoke-Role(
   ) -WorkingDirectory $repo -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru -WindowStyle Hidden
   Write-Host "ROLE_START cycle=$cycle role=$role agent=$agent pid=$($process.Id) startCommit=$startHead"
   $lastBytes = 0L
+  $lastMeaningfulBytes = Get-MeaningfulBytes
+  $lastHead = $startHead
   $lastLine = ''
   $latestProgress = $start
   $resetWait = $false
@@ -78,9 +90,12 @@ function Invoke-Role(
     $bytes = 0L
     if (Test-Path $stdout) { $bytes += (Get-Item $stdout).Length }
     if (Test-Path $stderr) { $bytes += (Get-Item $stderr).Length }
-    if ($bytes -gt $lastBytes -or (Get-Head) -ne $startHead) {
+    $meaningfulBytes = Get-MeaningfulBytes
+    $currentHead = Get-Head
+    if ($meaningfulBytes -gt $lastMeaningfulBytes -or $currentHead -ne $lastHead) {
       $latestProgress = Get-Date
-      $lastBytes = $bytes
+      $lastMeaningfulBytes = $meaningfulBytes
+      $lastHead = $currentHead
       $progressLine = @()
       if (Test-Path $stdout) { $progressLine += Get-Content $stdout -Tail 1 }
       if (Test-Path $stderr) { $progressLine += Get-Content $stderr -Tail 1 }
@@ -90,11 +105,12 @@ function Invoke-Role(
         $lastLine = $progressLine
       }
     }
+    $lastBytes = $bytes
     $tail = @()
     if (Test-Path $stdout) { $tail += Get-Content $stdout -Tail 80 }
     if (Test-Path $stderr) { $tail += Get-Content $stderr -Tail 80 }
     $resetWait = ($tail -join "`n") -match '(?i)(rate.?limit|usage.?limit|reset).*(wait|resume|hour|minute|[0-9]{1,2}:[0-9]{2})'
-    if (-not $resetWait -and $lastBytes -eq 0 -and (Get-Date) - $start -gt $startupTimeout -and (Get-Head) -eq $startHead) {
+    if (-not $resetWait -and (Get-Date) - $latestProgress -gt $startupTimeout) {
       $stalled = $true
       taskkill /PID $process.Id /T /F | Out-Null
       break
@@ -131,8 +147,13 @@ function Invoke-Role(
 Set-Location $repo
 for ($cycle = 1; $cycle -le $maxCycles; $cycle++) {
   $assignment = Join-Path $repo '.ai\inbox\gnhf-assignment.md'
-  $plan = Invoke-Role 'claude-planner' 'claude' 3 'PLAN_READY after a complete bounded assignment exists' (Join-Path $repo '.ai\overnight\claude-planner.md') $cycle
-  if ($plan.exitStatus -ne 0 -and -not (Test-Path $assignment)) { continue }
+  $cursorEvidence = Join-Path $repo '.ai\inbox\cursor-evidence.md'
+  if ((Test-Path $assignment) -and -not (Test-Path $cursorEvidence)) {
+    Write-Host "ROLE_RESUME cycle=$cycle next=cursor reason=valid-existing-assignment"
+  } else {
+    $plan = Invoke-Role 'claude-planner' 'claude' 3 'PLAN_READY after a complete bounded assignment exists' (Join-Path $repo '.ai\overnight\claude-planner.md') $cycle
+    if ($plan.exitStatus -ne 0 -and -not (Test-Path $assignment)) { continue }
+  }
 
   $implementation = Invoke-Role 'cursor-implementer' 'cursor' 8 'IMPLEMENTATION_READY or IMPLEMENTATION_BLOCKED after evidence is written' (Join-Path $repo '.ai\overnight\cursor-implementer.md') $cycle
   if ($implementation.exitStatus -ne 0) { continue }
