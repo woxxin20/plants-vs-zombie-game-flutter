@@ -169,6 +169,8 @@ section becomes meaningful starting at `PH-00`'s exit gate (empty-scene
 | --- | --- | --- | --- | --- | --- |
 | 2026-09-04 (c6) | `flutter test` | Local Windows, `HEAD` `d39b6b0` | Pass — 62/62 after `PH-02`..`PH-04` + `AUD-017` fix | Re-run by the lead on every phase, never taken from the worker's report | `AUD-017` found here |
 | 2026-09-04 (c6) | `flutter analyze` | Local Windows, `HEAD` `9cc0c49` | Pass — `No issues found!` | Re-run by the lead, not taken from the worker's report | None |
+| 2026-09-04 (c7) | `flutter build apk --debug` + install + launch | **SM-S711B, Android 16 (API 36), real hardware** | Pass — launches, forces `ROTATION_90` from portrait with auto-rotate on, no Dart exception in logcat | First time this project has ever run on a device. Android build was **broken** until `google_mobile_ads` was deferred | `AUD-019`, `AUD-020`, `AUD-021` all found here |
+| 2026-09-04 (c7) | `flutter test` | Local Windows, `HEAD` `256e995`+ | Pass — 66/66 | Re-run by the lead | `AUD-019`/`AUD-020` regressions |
 | 2026-09-04 (c6) | `flutter test` | Local Windows, `HEAD` `9cc0c49` | Pass — 42/42 (+7 `PH-01` gate tests) | Re-run by the lead; diff verified test-only (1 file, +285 lines, zero production change) | `PH-01` gate 6/7, gate 3 partial |
 | 2026-09-03 | `flutter --version` | Local Windows | Pass — 3.47.0 stable | Briefed baseline, not re-run this pass | None |
 | 2026-09-03 | `flutter pub get` | Local Windows, rewritten `pubspec.yaml` | Pass — resolved `flame 1.38.2`, `flame_audio 2.12.2`, `flame_riverpod 5.4.21`, `flutter_riverpod 2.6.1`, `go_router 16.3.0`, `hive_ce_flutter 2.3.4`, `google_mobile_ads 6.0.0`, `in_app_purchase 3.3.0` (per brief) | Briefed baseline, not re-run this pass | None |
@@ -463,6 +465,9 @@ Required checks:
 | `AUD-013` | Low | Closed | `const Vector2(...)` has no const constructor in `vector_math` | Mechanical const removal across 5 world files (`adf7676`) | Done | Confirmed: analyze 31 → 6 (c5) |
 | `AUD-014` | Medium | Closed | Flame `OpacityEffect` contract | `FadeableRender` mixin on the 4 hand-painted fade targets (`733fb55`) | Done | Confirmed: boot test passes (c5) |
 | `AUD-017` | Medium | Closed | `PRD-FR-015`; QA #10 | Read `camera.world` (`ed0c0f9`) + regression test (`d39b6b0`) | Done | Confirmed: fails without fix, 62/62 with (c6) |
+| `AUD-019` | Critical | Closed | Every interaction in the product | `IgnorePointer` around go_router's routed child (`256e995`) | Done | Confirmed on device + 3 shell tests (c7) |
+| `AUD-020` | Critical | Closed | `PRD-FR-014` vs shipped level 1 | `ADR-008` — cap tray at what the level offers | Done | Confirmed on device, 66/66 (c7) |
+| `AUD-021` | High | Open | `design.md` HUD contract; spec §11 | Diagnose `swapWorld` viewport clear vs async `onLoad` | Claude (lead) / next cycle | Pending |
 | `AUD-018` | Low | Open | Spec §23 | Drop `clearAll()` when audio assets land | `PH-04` audio owner | Pending assets |
 | `AUD-016` | Medium | Closed | `architecture.md` §6 vs the tree | `ADR-007` — accept implemented design, drop `TASK-021` | Done | Confirmed: `ADR-007` recorded (c6) |
 | `AUD-015` | Medium | Closed | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Cursor / PH-02 | Closed 2026-09-04 — `integration_test/uj01_test.dart` green on Windows |
@@ -546,6 +551,60 @@ Required checks:
 - **Owner/due:** Whoever completes `PH-04`'s audio half, once assets exist.
 - **Workaround:** N/A — inert.
 - **Retest evidence:** Pending assets.
+- **Closure/acceptance owner:** Pending.
+
+### `AUD-019` — go_router's routed `Navigator` sat over the `GameWidget` and swallowed every tap; the whole game was untappable
+
+- **Status:** Closed — fixed `256e995`.
+- **Severity:** Critical
+- **Detected:** 2026-09-04 (c7), by installing the game on a physical device and tapping PLAY.
+- **Source breached:** `PRD-FR-001`, `PRD-FR-014`, `UJ-01` — every interaction in the product.
+- **Affected users/data/components:** `lib/app.dart`'s `ShellRoute` builder; through it, every world and every button in the game.
+- **Evidence:** The shell composed `Stack(children: [RiverpodAwareGameWidget(...), child])`. go_router supplies a **full-size `Navigator`** as that `child`, which is opaque to hit-testing and is painted above the game. On device, tapping PLAY produced no navigation, no exception and no log line. Reproduced in a widget test at 2340x1080: tapping the PLAY button's exact screen position left `camera.world` as `HomeWorld`.
+- **Reproduction:** At `f545e79`, `flutter run` on any device and tap anything. Or run `test/app_navigation_test.dart` with the `IgnorePointer` removed — all three cases fail.
+- **Expected:** Taps reach the Flame components; the route bodies are zero-size side-effects and must never take input.
+- **Impact:** **The product was completely unusable while appearing perfect.** It rendered correctly on desktop and device, booted clean, and passed 62 tests. Not one of those tests could see it: they all drive worlds through a bare `GameWidget`, which has no routed Navigator above it. This is the strongest evidence yet in this project that a green suite plus a screenshot is not evidence of a working product.
+- **Likely cause:** Introduced with the app shell in `733fb55` (mine). `ShellRoute`'s `child` is easy to read as "the page content" rather than "a full-size Navigator".
+- **Remediation task:** `IgnorePointer` around the routed child (`256e995`), with a comment at the site.
+- **Owner/due:** Claude (lead) — done 2026-09-04.
+- **Workaround:** None — nothing worked.
+- **Retest evidence:** `test/app_navigation_test.dart` taps through the real shell at 812x375 and 2340x1080; verified both directions. Confirmed on the SM-S711B: PLAY now reaches the Loadout. `flutter analyze` clean, `flutter test` 66/66.
+- **Closure/acceptance owner:** Claude (lead), 2026-09-04 (c7).
+
+### `AUD-020` — Loadout demanded 6 tools while level 1 offers 3; no level was startable
+
+- **Status:** Closed — fixed `ADR-008`.
+- **Severity:** Critical
+- **Detected:** 2026-09-04 (c7), immediately after `AUD-019` made the Loadout reachable for the first time.
+- **Source breached:** `PRD-FR-014` acceptance criteria vs `assets/levels/1.json`.
+- **Affected users/data/components:** `lib/game/worlds/loadout_world.dart`; every player, every level.
+- **Evidence:** `kTrayLimit = 6` (`models.dart:12`); `assets/levels/1.json` `availableTools = ['bulb','beam','wall']`; `SaveStore`'s default `unlocked = {bulb, beam, wall}`; the gate is `_startButton.enabled = _selected.length == _trayLimit`. Three selectable, six required.
+- **Reproduction:** Fresh install, tap PLAY, select all three tools — Start Battle stays disabled.
+- **Expected:** A fresh save can start level 1.
+- **Impact:** The game could not be played at all. It is the second critical defect in one session that a passing gate test did not catch: `PH-03`'s criterion verifies that fewer/more than six is **blocked**, which was true throughout — nobody asserted the required count was **reachable**. A guard test without a reachability test is half a test.
+- **Likely cause:** `PRD-FR-014`'s "exactly 6" was written for the late game; the generated early-game content was never reconciled against it.
+- **Remediation task:** `ADR-008` — `min(kTrayLimit + bonus, eligible.length)`.
+- **Owner/due:** Repo owner (decision), Claude (lead) — done 2026-09-04.
+- **Workaround:** None.
+- **Retest evidence:** `test/app_navigation_test.dart` drives a fresh save through PLAY, selects every offered tool and asserts Start Battle enables. 66/66. Confirmed on device: the battle grid now loads.
+- **Closure/acceptance owner:** Repo owner, 2026-09-04 (c7).
+
+### `AUD-021` — Battle HUD does not appear when the battle is entered on device
+
+- **Status:** Open — observed, not yet diagnosed.
+- **Severity:** High
+- **Detected:** 2026-09-04 (c7), on the SM-S711B, immediately after `AUD-020` made a battle reachable for the first time.
+- **Source breached:** `docs/design.md` `DS-*` HUD contract; spec §11.
+- **Affected users/data/components:** `BattleWorld`, `TopBarComponent`, `RightPanelComponent`, the tool tray; `LightVsShadowGame.swapWorld`.
+- **Evidence:** Device screenshot after Start Battle shows the 21-tile grid and the lane sweep arrows rendering correctly, with **no** top bar, glow chip, wave counter, pause button, right panel or tool tray.
+- **Reproduction:** On device at `256e995`: PLAY → select the three tools → Start Battle. Grid appears, HUD does not.
+- **Expected:** The HUD mounts on `camera.viewport` with the battle.
+- **Impact:** A battle cannot be played — there is no glow readout and no tray to place tools from. Blocks `PH-02`'s on-device playthrough gate item.
+- **Likely cause:** Unconfirmed. Prime suspect is `LightVsShadowGame.swapWorld`, which clears `camera.viewport` (`removeAll`) as its last step while the incoming world's `onLoad` — which is what adds the HUD — runs asynchronously afterwards; ordering between the two is not guaranteed. `swapWorld` also still reads `final previous = world`, the same `game.world`-vs-`camera.world` confusion as `AUD-017`, so the outgoing world is never actually removed after the first swap and worlds accumulate.
+- **Remediation task:** Next session — first action in `STATE.md`.
+- **Owner/due:** Claude (lead), next cycle.
+- **Workaround:** None.
+- **Retest evidence:** Pending.
 - **Closure/acceptance owner:** Pending.
 
 ## 15. Gate decision
