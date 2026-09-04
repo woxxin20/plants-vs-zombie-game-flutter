@@ -55,10 +55,13 @@ class _PrismDefenseAppState extends State<PrismDefenseApp>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       _game.pauseEngine();
-      final world = _game.world;
+      // `camera.world`, NOT `game.world`: swapWorld sets the camera's, while
+      // FlameGame.world stays the default World forever. Reading the wrong one
+      // makes every `is BattleWorld` below silently false.
+      final world = _game.camera.world;
       if (world is BattleWorld) world.pause();
     } else if (state == AppLifecycleState.resumed) {
-      final world = _game.world;
+      final world = _game.camera.world;
       // Battle stays paused behind the overlay until the player taps Resume.
       if (world is BattleWorld && world.state == GameState.paused) return;
       _game.resumeEngine();
