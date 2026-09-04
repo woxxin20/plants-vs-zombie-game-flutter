@@ -13,6 +13,7 @@ import '../../core/tokens.dart';
 import '../../data/content.dart' show kLevelCount;
 import '../light_vs_shadow_game.dart';
 import 'world_widgets.dart';
+import '../components/fadeable.dart';
 
 class HomeWorld extends World with HasGameReference<LightVsShadowGame> {
   HomeWorld({
@@ -203,7 +204,7 @@ class _DioramaTile extends PositionComponent {
   }
 }
 
-class _DioramaBulb extends PositionComponent {
+class _DioramaBulb extends PositionComponent with FadeableRender {
   _DioramaBulb({required Vector2 position})
     : super(position: position, size: Vector2.all(14), anchor: Anchor.center);
 
@@ -234,7 +235,7 @@ class _DioramaBulb extends PositionComponent {
   }
 }
 
-class _DioramaBeam extends PositionComponent {
+class _DioramaBeam extends PositionComponent with FadeableRender {
   _DioramaBeam({required Vector2 position, required this.length})
     : super(position: position, size: Vector2(1, 6), anchor: Anchor.centerLeft);
 

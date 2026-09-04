@@ -14,8 +14,9 @@ import '../../core/layout.dart';
 import '../../core/tokens.dart';
 import '../../data/optics.dart';
 import 'backdrop_layers.dart' show P;
+import 'fadeable.dart';
 
-class BeamComponent extends PositionComponent {
+class BeamComponent extends PositionComponent with FadeableRender {
   BeamComponent() : super(priority: P.beam);
 
   Offset _from = Offset.zero;

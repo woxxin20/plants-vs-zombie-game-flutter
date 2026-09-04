@@ -15,8 +15,10 @@ import 'package:flame/effects.dart';
 import '../../core/tokens.dart';
 import '../../data/models.dart';
 import 'backdrop_layers.dart' show P;
+import 'fadeable.dart';
 
-class ShadowComponent extends PositionComponent with CollisionCallbacks {
+class ShadowComponent extends PositionComponent
+    with CollisionCallbacks, FadeableRender {
   ShadowComponent({
     required this.def,
     required this.lane,

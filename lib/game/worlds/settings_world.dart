@@ -101,9 +101,9 @@ class SwitchComponent extends PositionComponent with TapCallbacks {
   SwitchComponent({
     required bool value,
     required this.onChanged,
-    Vector2? position,
+    super.position,
   }) : _value = value,
-       super(size: Vector2(40, 22), position: position);
+       super(size: Vector2(40, 22));
 
   bool _value;
   final void Function(bool value) onChanged;
