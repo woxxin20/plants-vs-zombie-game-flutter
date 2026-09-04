@@ -196,6 +196,7 @@ abstract final class D {
   static const place = Duration(milliseconds: 220);
   static const buttonPress = Duration(milliseconds: 100);
   static const beamPulse = Duration(milliseconds: 600);
+
   /// Idle breathing cycle shared by bulbs and the ambient glow pools.
   static const breathe = Duration(seconds: 3);
   static const hpLerp = Duration(milliseconds: 200);

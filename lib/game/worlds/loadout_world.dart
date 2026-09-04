@@ -95,10 +95,7 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
     const cols = 4;
     const gap = S.x3;
     final gridW = cols * slotSize.x + (cols - 1) * gap;
-    final gridOrigin = Vector2(
-      rightX + (rightW - gridW) / 2,
-      60,
-    );
+    final gridOrigin = Vector2(rightX + (rightW - gridW) / 2, 60);
 
     for (var i = 0; i < unlockedTools.length; i++) {
       final tool = Content.I.tool(unlockedTools[i]);
@@ -106,7 +103,9 @@ class LoadoutWorld extends World with HasGameReference<LightVsShadowGame> {
       final col = i % cols;
       final slot = _ToolSlot(
         tool: tool,
-        position: gridOrigin + Vector2(col * (slotSize.x + gap), row * (slotSize.y + gap)),
+        position:
+            gridOrigin +
+            Vector2(col * (slotSize.x + gap), row * (slotSize.y + gap)),
         onTap: _toggle,
       );
       _slots.add(slot);
@@ -248,7 +247,9 @@ class _ToolSlot extends PositionComponent with TapCallbacks {
 
   bool selected = false;
 
-  static final _border = Paint()..style = PaintingStyle.stroke..strokeWidth = 2;
+  static final _border = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2;
   static final _fill = Paint();
 
   @override

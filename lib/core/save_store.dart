@@ -106,9 +106,7 @@ class SaveStore {
     await Hive.initFlutter();
     final box = await Hive.openBox<dynamic>(_boxName);
     final raw = box.get('state');
-    final state = raw is Map
-        ? SaveState.fromMap(raw)
-        : SaveState();
+    final state = raw is Map ? SaveState.fromMap(raw) : SaveState();
     return _instance = SaveStore._(box, state);
   }
 

@@ -49,12 +49,14 @@ class BeamComponent extends PositionComponent with FadeableRender {
 
   /// Points this segment at a new path. Cheap — no allocation, no remount.
   void setSegment(BeamSegment s, BattleLayout layout) {
-    final from = layout.origin +
+    final from =
+        layout.origin +
         Vector2(
           s.fromCol * (layout.tile + S.tileGap) + layout.tile / 2,
           s.fromRow * (layout.tile + S.tileGap) + layout.tile / 2,
         );
-    final to = layout.origin +
+    final to =
+        layout.origin +
         Vector2(
           s.toCol * (layout.tile + S.tileGap) + layout.tile / 2,
           s.toRow * (layout.tile + S.tileGap) + layout.tile / 2,

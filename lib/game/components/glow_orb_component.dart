@@ -67,7 +67,12 @@ class GlowOrbComponent extends PositionComponent with TapCallbacks {
     canvas.drawCircle(c, 14, _glow);
     canvas.drawCircle(c, 8, _core);
     // Hand-drawn 4-ray sunburst (spec §10.5) — no Material icon.
-    for (final (dx, dy) in const [(0.0, -1.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0)]) {
+    for (final (dx, dy) in const [
+      (0.0, -1.0),
+      (1.0, 0.0),
+      (0.0, 1.0),
+      (-1.0, 0.0),
+    ]) {
       canvas.drawLine(
         c + Offset(dx * 11, dy * 11),
         c + Offset(dx * 15, dy * 15),

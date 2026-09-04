@@ -36,11 +36,10 @@ class BackdropLayer extends PositionComponent {
   final Vector2 viewSize;
 
   late final Paint _gradient = Paint()
-    ..shader = Gradient.linear(
-      Offset.zero,
-      Offset(0, viewSize.y),
-      const [C.backdropTop, C.backdropBottom],
-    );
+    ..shader = Gradient.linear(Offset.zero, Offset(0, viewSize.y), const [
+      C.backdropTop,
+      C.backdropBottom,
+    ]);
 
   // Implied desk lamp off-frame, centre-left (spec §4.1).
   late final Paint _lampPool = Paint()
@@ -116,10 +115,7 @@ class DustMoteLayer extends Component {
     for (final m in _motes) {
       m.pos += m.drift * dt;
       // Gentle sine wander on top of the linear drift.
-      m.pos = Offset(
-        m.pos.dx + math.sin(_t * 0.4 + m.phase) * 0.15,
-        m.pos.dy,
-      );
+      m.pos = Offset(m.pos.dx + math.sin(_t * 0.4 + m.phase) * 0.15, m.pos.dy);
       // Wrap rather than respawn, so the count never changes.
       if (m.pos.dx < -4) m.pos = Offset(viewSize.x + 4, m.pos.dy);
       if (m.pos.dx > viewSize.x + 4) m.pos = Offset(-4, m.pos.dy);
@@ -177,7 +173,8 @@ class AmbientGlowLayer extends Component {
   void render(Canvas canvas) {
     // 1.0 -> 1.08 -> 1.0 over 3s (spec §18.2 breathing).
     final breathe =
-        1.0 + 0.08 * (0.5 + 0.5 * math.sin(_t * 2 * math.pi / D.secs(D.breathe)));
+        1.0 +
+        0.08 * (0.5 + 0.5 * math.sin(_t * 2 * math.pi / D.secs(D.breathe)));
     for (final s in sources) {
       final radius = layout.tile * 1.6 * breathe;
       canvas.drawCircle(

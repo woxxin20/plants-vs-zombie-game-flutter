@@ -202,11 +202,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
       final c = layout.tileColFromX(s.position.x);
       if (c == null) continue;
       if (!footprint.any((f) => f.row == s.lane && f.col == c)) continue;
-      if (s.takeBeamDamage(
-        kBombDamage.toDouble(),
-        slow: false,
-        now: time,
-      )) {
+      if (s.takeBeamDamage(kBombDamage.toDouble(), slow: false, now: time)) {
         _killShadow(s);
       }
     }
@@ -366,7 +362,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
           _tools[front.row][front.col] = null;
           grid.tileAt(front.row, front.col).occupied = false;
           front.destroyAndRemove();
-                _refreshGlowPools();
+          _refreshGlowPools();
         }
       } else {
         s.isEating = false;
@@ -405,9 +401,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
       sweepAvailable[lane] = false;
       grid.sweepAvailable[lane] = false;
       _fx.emit(
-        () => fx.sweepBurst(
-          Vector2(layout.origin.x, layout.laneCenterY(lane)),
-        ),
+        () => fx.sweepBurst(Vector2(layout.origin.x, layout.laneCenterY(lane))),
       );
       for (final victim in shadows.where((x) => x.lane == lane).toList()) {
         _killShadow(victim);
@@ -470,7 +464,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
         now: time,
       )) {
         _killShadow(s);
-          } else if (fired) {
+      } else if (fired) {
         _fx.emit(() => fx.hitSpark(s.position.clone()));
       }
     }
@@ -507,7 +501,8 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     }
     if (rules.hasLost(
       shadows: [
-        for (final s in shadows) (x: s.position.x - layout.origin.x, lane: s.lane),
+        for (final s in shadows)
+          (x: s.position.x - layout.origin.x, lane: s.lane),
       ],
       sweepAvailable: sweepAvailable,
     )) {

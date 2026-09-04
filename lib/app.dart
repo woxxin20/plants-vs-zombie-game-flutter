@@ -47,16 +47,24 @@ class _PrismDefenseAppState extends State<PrismDefenseApp> {
           ],
         ),
         routes: [
-          _world('/home', (context, state) => HomeWorld(
-            onPlay: () => context.go('/loadout/${SaveStore.I.state.maxUnlocked}'),
-            onMap: () => context.go('/map'),
-            onSettings: () => context.go('/settings'),
-            onDaily: () => context.go('/loadout/${dailyLevelId(DateTime.now())}'),
-          )),
-          _world('/map', (context, state) => MapWorld(
-            onSelect: (levelId) => context.go('/loadout/$levelId'),
-            onBack: () => context.go('/home'),
-          )),
+          _world(
+            '/home',
+            (context, state) => HomeWorld(
+              onPlay: () =>
+                  context.go('/loadout/${SaveStore.I.state.maxUnlocked}'),
+              onMap: () => context.go('/map'),
+              onSettings: () => context.go('/settings'),
+              onDaily: () =>
+                  context.go('/loadout/${dailyLevelId(DateTime.now())}'),
+            ),
+          ),
+          _world(
+            '/map',
+            (context, state) => MapWorld(
+              onSelect: (levelId) => context.go('/loadout/$levelId'),
+              onBack: () => context.go('/home'),
+            ),
+          ),
           _world('/loadout/:levelId', (context, state) {
             final levelId = _levelId(state);
             return LoadoutWorld(
@@ -66,35 +74,45 @@ class _PrismDefenseAppState extends State<PrismDefenseApp> {
               onBack: () => context.go('/map'),
             );
           }),
-          _world('/battle/:levelId', (context, state) => BattleWorld(
-            levelId: _levelId(state),
-            // BattleWorld persists its own result; these are navigation only.
-            tray: (state.extra as List<String>?) ?? const <String>[],
-            onWin: (stars, coins) => context.go('/map'),
-            onLose: () => context.go('/map'),
-          )),
-          _world('/shop', (context, state) => ShopWorld(
-            onRemoveAdsPressed: () {},
-            onBack: () => context.go('/home'),
-          )),
-          _world('/settings', (context, state) => SettingsWorld(
-            onBack: () => context.go('/home'),
-          )),
+          _world(
+            '/battle/:levelId',
+            (context, state) => BattleWorld(
+              levelId: _levelId(state),
+              // BattleWorld persists its own result; these are navigation only.
+              tray: (state.extra as List<String>?) ?? const <String>[],
+              onWin: (stars, coins) => context.go('/map'),
+              onLose: () => context.go('/map'),
+            ),
+          ),
+          _world(
+            '/shop',
+            (context, state) => ShopWorld(
+              onRemoveAdsPressed: () {},
+              onBack: () => context.go('/home'),
+            ),
+          ),
+          _world(
+            '/settings',
+            (context, state) =>
+                SettingsWorld(onBack: () => context.go('/home')),
+          ),
         ],
       ),
     ],
   );
 
   /// A route whose only job is to put [build]'s world on the shared game.
-  GoRoute _world(String path, World Function(BuildContext, GoRouterState) build) =>
-      GoRoute(
-        path: path,
-        builder: (context, state) => _WorldSwap(
-          key: ValueKey(state.uri.toString()),
-          game: _game,
-          build: () => build(context, state),
-        ),
-      );
+  GoRoute _world(
+    String path,
+    World Function(BuildContext, GoRouterState) build,
+  ) => GoRoute(
+    path: path,
+    builder: (context, state) => _WorldSwap(
+      key: ValueKey(state.uri.toString()),
+      game: _game,
+      build: () => build(context, state),
+    ),
+  );
 
   static int _levelId(GoRouterState state) =>
       int.tryParse(state.pathParameters['levelId'] ?? '') ?? 1;

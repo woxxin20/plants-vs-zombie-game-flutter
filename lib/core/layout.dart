@@ -56,7 +56,8 @@ class BattleLayout {
       tileTopLeft(row, col) + Vector2.all(tile / 2);
 
   /// Vertical centre of a lane.
-  double laneCenterY(int lane) => origin.y + lane * (tile + S.tileGap) + tile / 2;
+  double laneCenterY(int lane) =>
+      origin.y + lane * (tile + S.tileGap) + tile / 2;
 
   /// World x where a shadow spawns: one tool-width past the right board edge.
   double get spawnX => origin.x + boardW + 32;

@@ -17,7 +17,10 @@ class BombComponent extends ToolComponent {
   static const Offset _center = Offset(20, 22);
   static const double _radius = 10;
 
-  static final Paint _bloom = ToolComponent.bloom(C.primary, Elevation.tool.blur);
+  static final Paint _bloom = ToolComponent.bloom(
+    C.primary,
+    Elevation.tool.blur,
+  );
   static final Paint _fill = Paint()..color = C.primary;
   static final Paint _fuse = Paint()
     ..color = C.error

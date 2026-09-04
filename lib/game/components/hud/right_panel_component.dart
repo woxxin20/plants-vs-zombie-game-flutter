@@ -22,7 +22,8 @@ class RightPanelComponent extends PositionComponent {
     bool boostEnabled = true,
     required this.onBoost,
   }) : slots = [
-         for (final t in tools) TraySlotComponent(def: t, onTap: () => onSlotTap(t)),
+         for (final t in tools)
+           TraySlotComponent(def: t, onTap: () => onSlotTap(t)),
        ],
        _boostEnabled = boostEnabled,
        super(
@@ -55,7 +56,13 @@ class RightPanelComponent extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
-    add(HudLabel('TRAY - PICK 1', style: T.label, position: Vector2(S.cardPad, S.cardPad)));
+    add(
+      HudLabel(
+        'TRAY - PICK 1',
+        style: T.label,
+        position: Vector2(S.cardPad, S.cardPad),
+      ),
+    );
 
     final gridW = 3 * _slotEdge + 2 * S.trayGap;
     final gridLeft = (size.x - gridW) / 2;
@@ -73,7 +80,12 @@ class RightPanelComponent extends PositionComponent {
 
     final barLeft = (size.x - _barW) / 2;
     final statsTop = gridBottom + S.x6;
-    add(_TrackBg(position: Vector2(barLeft, statsTop), size: Vector2(_barW, _barH)));
+    add(
+      _TrackBg(
+        position: Vector2(barLeft, statsTop),
+        size: Vector2(_barW, _barH),
+      ),
+    );
     add(
       _fill = _ProgressFill(position: Vector2(barLeft, statsTop))
         ..width = _barW * waveProgress.clamp(0.0, 1.0),
@@ -81,7 +93,13 @@ class RightPanelComponent extends PositionComponent {
     _lastProgress = waveProgress;
 
     final legendTop = statsTop + _barH + S.x4;
-    add(_HpLegendBar(position: Vector2(barLeft, legendTop), color: C.success, width: S.x12));
+    add(
+      _HpLegendBar(
+        position: Vector2(barLeft, legendTop),
+        color: C.success,
+        width: S.x12,
+      ),
+    );
     add(
       _HpLegendBar(
         position: Vector2(barLeft + S.x12 + S.x2, legendTop),
@@ -105,7 +123,10 @@ class RightPanelComponent extends PositionComponent {
     if (target != _lastProgress) {
       _lastProgress = target;
       _fill.add(
-        SizeEffect.to(Vector2(_barW * target, _barH), EffectController(duration: D.secs(D.hpLerp))),
+        SizeEffect.to(
+          Vector2(_barW * target, _barH),
+          EffectController(duration: D.secs(D.hpLerp)),
+        ),
       );
     }
   }
@@ -113,7 +134,8 @@ class RightPanelComponent extends PositionComponent {
   static final _bg = Paint()..color = C.surface;
 
   @override
-  void render(Canvas canvas) => canvas.drawRect(Offset.zero & size.toSize(), _bg);
+  void render(Canvas canvas) =>
+      canvas.drawRect(Offset.zero & size.toSize(), _bg);
 }
 
 class _TrackBg extends PositionComponent {
@@ -121,17 +143,24 @@ class _TrackBg extends PositionComponent {
 
   @override
   void render(Canvas canvas) => canvas.drawRRect(
-    RRect.fromRectAndRadius(Offset.zero & size.toSize(), const Radius.circular(R.hp)),
+    RRect.fromRectAndRadius(
+      Offset.zero & size.toSize(),
+      const Radius.circular(R.hp),
+    ),
     Paint()..color = C.gridEmpty,
   );
 }
 
 class _ProgressFill extends PositionComponent {
-  _ProgressFill({required super.position}) : super(size: Vector2(0, RightPanelComponent._barH));
+  _ProgressFill({required super.position})
+    : super(size: Vector2(0, RightPanelComponent._barH));
 
   @override
   void render(Canvas canvas) => canvas.drawRRect(
-    RRect.fromRectAndRadius(Offset.zero & size.toSize(), const Radius.circular(R.hp)),
+    RRect.fromRectAndRadius(
+      Offset.zero & size.toSize(),
+      const Radius.circular(R.hp),
+    ),
     Paint()..color = C.primary,
   );
 }
@@ -139,14 +168,20 @@ class _ProgressFill extends PositionComponent {
 /// A static two-bar legend for the HP colour scale (`C.hpFill`) — full
 /// success-green vs. half error-red, not tied to any live tool.
 class _HpLegendBar extends PositionComponent {
-  _HpLegendBar({required super.position, required this.color, required double width})
-    : super(size: Vector2(width, 4));
+  _HpLegendBar({
+    required super.position,
+    required this.color,
+    required double width,
+  }) : super(size: Vector2(width, 4));
 
   final Color color;
 
   @override
   void render(Canvas canvas) => canvas.drawRRect(
-    RRect.fromRectAndRadius(Offset.zero & size.toSize(), const Radius.circular(R.hp)),
+    RRect.fromRectAndRadius(
+      Offset.zero & size.toSize(),
+      const Radius.circular(R.hp),
+    ),
     Paint()..color = color,
   );
 }
@@ -154,7 +189,8 @@ class _HpLegendBar extends PositionComponent {
 /// Bottom rewarded-Boost button — spec §11/§20: `+50 GLOW`, 1-per-battle,
 /// dimmed via a real `OpacityEffect` when spent/unavailable.
 class _BoostButton extends PositionComponent with TapCallbacks, HasPaint {
-  _BoostButton({required this.onBoost, required super.position}) : super(size: Vector2(200, 48));
+  _BoostButton({required this.onBoost, required super.position})
+    : super(size: Vector2(200, 48));
 
   void Function() onBoost;
 
@@ -163,7 +199,12 @@ class _BoostButton extends PositionComponent with TapCallbacks, HasPaint {
   set enabled(bool value) {
     if (_enabled == value) return;
     _enabled = value;
-    add(OpacityEffect.to(value ? 1.0 : 0.4, EffectController(duration: D.secs(D.place))));
+    add(
+      OpacityEffect.to(
+        value ? 1.0 : 0.4,
+        EffectController(duration: D.secs(D.place)),
+      ),
+    );
   }
 
   late final HudLabel _title;
@@ -203,10 +244,24 @@ class _BoostButton extends PositionComponent with TapCallbacks, HasPaint {
 
   @override
   void render(Canvas canvas) {
-    final rrect = RRect.fromRectAndRadius(Offset.zero & size.toSize(), const Radius.circular(R.slot));
-    canvas.drawRRect(rrect, _fillPaint..color = C.surface3.withValues(alpha: opacity));
-    canvas.drawRRect(rrect, _borderPaint..color = C.gridBorder.withValues(alpha: opacity));
-    paintSunburst(canvas, Offset(S.x8, size.y / 2), 16, C.primary.withValues(alpha: opacity));
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size.toSize(),
+      const Radius.circular(R.slot),
+    );
+    canvas.drawRRect(
+      rrect,
+      _fillPaint..color = C.surface3.withValues(alpha: opacity),
+    );
+    canvas.drawRRect(
+      rrect,
+      _borderPaint..color = C.gridBorder.withValues(alpha: opacity),
+    );
+    paintSunburst(
+      canvas,
+      Offset(S.x8, size.y / 2),
+      16,
+      C.primary.withValues(alpha: opacity),
+    );
   }
 
   @override

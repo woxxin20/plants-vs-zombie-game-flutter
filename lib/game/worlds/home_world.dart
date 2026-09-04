@@ -156,10 +156,7 @@ class _PreviewCard extends PositionComponent {
     const gap = S.x1;
     final gridW = cols * tile.x + (cols - 1) * gap;
     final gridH = rows * tile.y + (rows - 1) * gap;
-    final origin = Vector2(
-      (size.x - gridW) / 2,
-      (size.y - gridH) / 2,
-    );
+    final origin = Vector2((size.x - gridW) / 2, (size.y - gridH) / 2);
 
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < cols; c++) {

@@ -62,10 +62,7 @@ void main() {
         place(bulb, now: 103, lastPlaced: {'bulb': 100}),
         PlaceResult.onCooldown,
       );
-      expect(
-        place(bulb, now: 105, lastPlaced: {'bulb': 100}),
-        PlaceResult.ok,
-      );
+      expect(place(bulb, now: 105, lastPlaced: {'bulb': 100}), PlaceResult.ok);
     });
 
     test('Twin Bulb needs a Bulb under it and replaces it', () {

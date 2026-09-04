@@ -15,7 +15,8 @@ import 'hud_paint.dart';
 
 /// One pickable tool in the tray. Draws the tool's identity as a simple
 /// coloured shape only — never imports the tool components themselves.
-class TraySlotComponent extends PositionComponent with TapCallbacks, HasPaint<String> {
+class TraySlotComponent extends PositionComponent
+    with TapCallbacks, HasPaint<String> {
   TraySlotComponent({
     required this.def,
     bool selected = false,
@@ -42,7 +43,13 @@ class TraySlotComponent extends PositionComponent with TapCallbacks, HasPaint<St
     _selected = value;
     getPaint(_borderId).colorFilter = null;
     if (value) {
-      add(ColorEffect(C.primary, EffectController(duration: D.secs(D.place)), paintId: _borderId));
+      add(
+        ColorEffect(
+          C.primary,
+          EffectController(duration: D.secs(D.place)),
+          paintId: _borderId,
+        ),
+      );
     }
   }
 
@@ -65,7 +72,14 @@ class TraySlotComponent extends PositionComponent with TapCallbacks, HasPaint<St
         position: Vector2(size.x - S.x1, S.x1),
       ),
     );
-    add(_cooldownLabel = HudLabel('', style: T.h3, anchor: Anchor.center, position: size / 2));
+    add(
+      _cooldownLabel = HudLabel(
+        '',
+        style: T.h3,
+        anchor: Anchor.center,
+        position: size / 2,
+      ),
+    );
   }
 
   bool get _onCooldown => cooldownRemaining > 0 && cooldownTotal > 0;
@@ -101,7 +115,10 @@ class TraySlotComponent extends PositionComponent with TapCallbacks, HasPaint<St
 
   @override
   void render(Canvas canvas) {
-    final rrect = RRect.fromRectAndRadius(Offset.zero & size.toSize(), const Radius.circular(R.slot));
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size.toSize(),
+      const Radius.circular(R.slot),
+    );
     final disabled = !affordable || _onCooldown;
     final alpha = disabled ? 0.4 : 1.0;
 
@@ -115,8 +132,12 @@ class TraySlotComponent extends PositionComponent with TapCallbacks, HasPaint<St
 
     if (_onCooldown) {
       canvas.drawRRect(rrect, _scrim);
-      final arcRect = Rect.fromCircle(center: Offset(size.x / 2, size.y / 2), radius: size.x / 2 - S.x2);
-      final sweep = 2 * math.pi * (cooldownRemaining / cooldownTotal).clamp(0.0, 1.0);
+      final arcRect = Rect.fromCircle(
+        center: Offset(size.x / 2, size.y / 2),
+        radius: size.x / 2 - S.x2,
+      );
+      final sweep =
+          2 * math.pi * (cooldownRemaining / cooldownTotal).clamp(0.0, 1.0);
       canvas.drawArc(arcRect, -math.pi / 2, sweep, false, _arc);
     }
   }

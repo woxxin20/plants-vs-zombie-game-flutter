@@ -190,7 +190,9 @@ class IapService {
   Future<void> buyRemoveAds() async {
     final p = _product;
     if (p == null) return;
-    await _iap.buyNonConsumable(purchaseParam: PurchaseParam(productDetails: p));
+    await _iap.buyNonConsumable(
+      purchaseParam: PurchaseParam(productDetails: p),
+    );
   }
 
   Future<void> restore() => _iap.restorePurchases();

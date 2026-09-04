@@ -170,11 +170,7 @@ class WaveSpawn {
 }
 
 class Wave {
-  const Wave({
-    required this.delay,
-    required this.shadows,
-    this.flag = false,
-  });
+  const Wave({required this.delay, required this.shadows, this.flag = false});
 
   /// Seconds from level start before this wave is eligible to spawn.
   final double delay;

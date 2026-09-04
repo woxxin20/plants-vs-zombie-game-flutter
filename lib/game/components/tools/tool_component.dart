@@ -59,10 +59,7 @@ abstract class ToolComponent extends PositionComponent {
     add(
       ScaleEffect.to(
         Vector2.all(1),
-        EffectController(
-          duration: D.secs(D.place),
-          curve: Curves.elasticOut,
-        ),
+        EffectController(duration: D.secs(D.place), curve: Curves.elasticOut),
       ),
     );
   }

@@ -27,7 +27,12 @@ class ShopWorld extends World with HasGameReference<LightVsShadowGame> {
   Future<void> onLoad() async {
     final viewSize = kBaselineSize.clone();
     // Shop is L0-L2 only — no ambient glow (spec §12).
-    await addMenuBackdrop(this, viewSize: viewSize, layout: game.layout, ambient: false);
+    await addMenuBackdrop(
+      this,
+      viewSize: viewSize,
+      layout: game.layout,
+      ambient: false,
+    );
 
     await add(
       WorldButton(
@@ -65,11 +70,18 @@ class ShopWorld extends World with HasGameReference<LightVsShadowGame> {
     // --- right: remove ads card ------------------------------------------
     final cardSize = Vector2(280, 120);
     final cardPos = Vector2(viewSize.x - cardSize.x - S.screenPad - S.x4, 110);
-    await add(_RemoveAdsCard(size: cardSize, position: cardPos, onPressed: onRemoveAdsPressed));
+    await add(
+      _RemoveAdsCard(
+        size: cardSize,
+        position: cardPos,
+        onPressed: onRemoveAdsPressed,
+      ),
+    );
   }
 
   bool get _traySlotAvailable =>
-      SaveStore.I.state.traySlotBonus == 0 && SaveStore.I.state.coins >= kTraySlotPrice;
+      SaveStore.I.state.traySlotBonus == 0 &&
+      SaveStore.I.state.coins >= kTraySlotPrice;
 
   String get _traySlotLabel => SaveStore.I.state.traySlotBonus > 0
       ? 'TRAY SLOT +2 — OWNED'
@@ -123,7 +135,9 @@ class _RemoveAdsCard extends PositionComponent {
     await add(
       TextComponent(
         text: 'No banners, no interstitials.',
-        textRenderer: TextPaint(style: T.bodySmall.copyWith(color: C.textSecondary)),
+        textRenderer: TextPaint(
+          style: T.bodySmall.copyWith(color: C.textSecondary),
+        ),
         position: Vector2(S.cardPad, S.cardPad + 26),
       ),
     );

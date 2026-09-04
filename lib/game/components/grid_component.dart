@@ -125,11 +125,7 @@ class TileComponent extends PositionComponent with TapCallbacks {
     add(
       MoveByEffect(
         Vector2(S.tileGap, 0),
-        EffectController(
-          duration: 0.08,
-          alternate: true,
-          repeatCount: 2,
-        ),
+        EffectController(duration: 0.08, alternate: true, repeatCount: 2),
         onComplete: () => _shaking = false,
       ),
     );
