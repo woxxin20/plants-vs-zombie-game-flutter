@@ -6,6 +6,7 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
+import 'package:flame/events.dart';
 
 import '../../../core/layout.dart';
 import '../../../core/tokens.dart';
