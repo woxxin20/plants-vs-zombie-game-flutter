@@ -3,17 +3,16 @@
 <!-- AGENT-OWNED. Whole-file rewrite only, never patched.
      Humans edit HUMAN NOTES only. Rules: .ai/STATE-PROTOCOL.md -->
 
-CYCLE:   9 (closed)
-UPDATED: 2026-09-07T14:20+05:30
-BY:      lead:claude
+CYCLE:   10 (open)
+UPDATED: 2026-09-07T13:28+05:30
+BY:      lead:codex
 BRANCH:  main
-COMMIT:  4f8ba3b
-STATUS:  NEEDS-REVIEW
+COMMIT:  64c6bec
+STATUS:  BLOCKED
 
 ## NEXT ACTION
-Attach the SM-S711B and run `flutter run --debug`, then tap PLAY → START
-BATTLE and play level 1 to a win or a loss. The sim is now proven playable
-in-suite (`test/battle_playthrough_test.dart`); a finger on glass is not.
+Run `adb devices -l` after phone-side USB debugging authorization; serial
+`RZCX509DE5F` must report `device` before installation can start.
 
 ## PROJECT
 Type:    Flutter 3.47 + Flame 1.38 landscape game, offline, no backend
@@ -32,14 +31,14 @@ Done when:
       (played to both terminal states in-suite; unverified on hardware)
 
 ## BROKEN NOW
+- Device gate blocked: Windows sees SM-S711B USB and ADB interfaces, but `adb`
+  first reported serial `RZCX509DE5F` as `offline`, then stopped listing it
+  after `adb reconnect offline`. Debug APK builds successfully.
 - AUD-023 (High, open): levels 1–3 are WON by doing nothing. One sweep clears
   a whole lane (spec §17) and a 3-wave level never presents more than three
   lane-arrivals, so three free sweeps absorb the level. Level data, not rules
   — needs tool/gen_levels.py retuned and regenerated. Balance is an owner call.
-- Unproven, which is not the same as working: no device was attached in c8 or
-  c9. Three of this project's four critical defects were invisible to a green
-  suite. Trust the device, not this line.
-- Reproduce: `flutter run --debug`, PLAY → START BATTLE, then place nothing.
+- Reproduce device block: `adb kill-server`; `adb start-server`; `adb devices -l`.
 
 ## DECISIONS / DO NOT TOUCH
 - Pure gameplay rules stay in lib/data/{optics,rules}.dart without Flame/Flutter imports.
@@ -52,6 +51,8 @@ Done when:
 - google_mobile_ads + in_app_purchase are commented out in pubspec: 6.0.0 breaks Gradle 9.3.1 and blocked the entire Android build. Restore lib/core/monetization.dart from git when monetization resumes.
 
 ## NEEDS HUMAN
+- [ ] Reconnect/unlock SM-S711B, enable USB debugging, and approve this computer;
+      `adb devices -l` currently lists no Android target.
 - [ ] AUD-023: how hard should levels 1–3 be? Fixing it means retuning
       tool/gen_levels.py and regenerating all 20 levels — a balance call.
 - [ ] Native bundle id + app label, still `plants_vs_zombie` and visible on the device home screen (ARCH-Q-003).
@@ -75,8 +76,8 @@ Done when:
 (free text — agent copies this block through byte-for-byte)
 
 ## LOG
+- 2026-09-07 | c10 | Device rerun blocked: Windows sees SM-S711B USB/ADB hardware, but adb reported offline then lost it. Debug APK built successfully; install/playthrough not run.
 - 2026-09-07 | c9 | First tests that actually PLAY a level (PH-02-G3): level 1 won with all three sweeps unspent, level 4 lost by an idle player — both terminal states now reachable by play, not only by assignment. Negative-controlled (zeroed Beam dmg → fail). Closed T-1 (tautological special-case asserts) and T-2 (reachability pass). Found AUD-023: levels 1–3 win themselves. PRD-FR-006/009 Built → Tested. 72/72, analyze clean. Still no device.
 - 2026-09-07 | c8 | Root-caused AUD-021: the HUD was never wired to BattleWorld — the c7 diagnosis (a swapWorld viewport-clear race) was WRONG and is recorded as such in audit.md. Wired TopBar + RightPanel onto camera.viewport with a one-direction per-frame sync; closed AUD-022. New test verified against the pre-fix tree: 0/4 → 4/4. 70/70.
 - 2026-09-04 | c7 | First device run in project history (SM-S711B): Android build was broken by google_mobile_ads vs Gradle 9.3.1; deferring ads fixed it. Found and fixed AUD-019 (routed Navigator swallowed EVERY tap) and AUD-020 (loadout demanded 6 tools, level 1 offers 3). 66/66
 - 2026-09-04 | c6 | Filled AGENTS.md §6, rewrote README as the doc-ownership map, reconciled PH-00/PH-01, ADR-007 dropped the never-built Riverpod layer; Cursor delivered PH-01..PH-04 under bounded assignments; review found AUD-017
-- 2026-09-04 | c5 | Stopped the stalled GNHF loop and took the work directly: wrote lib/app.dart + boot test, fixed AUD-014
