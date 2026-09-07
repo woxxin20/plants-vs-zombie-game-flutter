@@ -179,6 +179,7 @@ section becomes meaningful starting at `PH-00`'s exit gate (empty-scene
 | 2026-09-07 (c9) | Idle probe, all 20 levels, no input | Local Windows | Levels 1–3 **won**, 4–20 lost | Found `AUD-023`. Throwaway harness, not committed | `AUD-023` |
 | 2026-09-07 (c9) | `flutter analyze` + `flutter test` | Local Windows | Pass — `No issues found!`, 72/72 | 70 existing + 2 played-level tests | `PH-02-G3`, `T-1`, `T-2` |
 | 2026-09-07 (c10) | `flutter build apk --debug`; install; cold launch; ADB tap/screenshot playthrough | SM-S711B, Android 16, serial `RZCX509DE5F` | **Fail at terminal/pause UI** — build/install/launch passed; Home → Loadout → Battle, tool placement, Glow collection, waves, and HUD worked; pause and terminal transitions froze on the last battle frame with no overlay | Cold launch 1.7s. Two screenshots 15s apart and a post-pause screenshot were byte-identical (`SHA-256 01CF05…AAB6`); activity remained foreground/awake; no Flutter exception, fatal exception, or ANR in logcat | `PH-02-G2` passed; `PH-02-G1` blocked; found `AUD-024` |
+| 2026-09-07 (c14) | Git-drift review of the uncommitted c13 tree; `flutter analyze`; `flutter test`; codegraph re-index | Local Windows, `main` @ `82ed6ab` + dirty tree | Pass on the machine checks — `No issues found!`, 72/72, index 86 files / 1,416 nodes / 3,339 edges | Six c13 documentation claims did not survive review: `PRD-FR-021`/`022` demoted `Tested`→`Built`, four `PH-04` gate boxes reverted, `AUD-018` reopened as code-fixed-but-unverified. Three new findings: `AUD-025` (3.5 MB unreferenced images bundled), `AUD-026` (invalid Xcode boolean, fixed), `AUD-027` (BGM has no call site) | `PH-04` gate corrected to 2/5; `AUD-018` reopened |
 | 2026-09-07 (c11) | Two force-stop/cold-start retries: active-wave Pause, then idle level-1 terminal transition | SM-S711B, Android 16 | **Same failure twice** — Pause produced no overlay and stopped frame changes; idle level 1 reached its terminal transition but produced no Win overlay | Pause screenshots after 2s/12s were byte-identical (`SHA-256 303DE6…90A3F`). Terminal screenshots at 110s/120s were byte-identical (`SHA-256 051B34…01C0A`). Activity stayed top-resumed, phone awake, device connected, logcat clean | Confirms `AUD-024` is deterministic and survives app restart |
 | 2026-09-04 (c6) | `flutter test` | Local Windows, `HEAD` `9cc0c49` | Pass — 42/42 (+7 `PH-01` gate tests) | Re-run by the lead; diff verified test-only (1 file, +285 lines, zero production change) | `PH-01` gate 6/7, gate 3 partial |
 | 2026-09-03 | `flutter --version` | Local Windows | Pass — 3.47.0 stable | Briefed baseline, not re-run this pass | None |
@@ -480,7 +481,10 @@ Required checks:
 | `AUD-022` | Medium | Closed | Spec §24 edge case 20 | `swapWorld` reads `camera.world` and removes the outgoing world unconditionally | Done | Confirmed: fails without fix, 70/70 with (c8) |
 | `AUD-023` | High | Open | `PRD-FR-009`; spec §17 | Retune `tool/gen_levels.py` so levels 1–3 spawn more waves than there are lane sweeps, then regenerate | Owner (balance) | Probe: levels 1–3 idle-win, 4–20 idle-lose (c9) |
 | `AUD-024` | High | Open | `PRD-FR-010`, `PRD-FR-011`, `PRD-FR-015`; `DS-075` | Mount Pause/Win/Lose overlays before pausing the Flame engine; add a regression that does not resume the engine to flush lifecycle queues | `TASK-046` | Device reproduction on SM-S711B (c10) |
-| `AUD-018` | Low | Open | Spec §23 | Drop `clearAll()` when audio assets land | `PH-04` audio owner | Pending assets |
+| `AUD-018` | Low | Open | Spec §23 | Code fixed (`clearAll()` dropped, preload wired); still needs one negative-controlled test or device run that observes a cue play | `PH-04` audio owner | Code correct at c13; retest evidence rejected at c14 — the cited test only stats files on disk |
+| `AUD-025` | Medium | Open | `docs/rules.md` §9; `PRD-FR-022` | Drop `assets/images/` from the `pubspec.yaml` asset manifest (launcher icons are a build-time input); add a bundle-size budget row to `rules.md` §9 | `PH-04`/`PH-06` owner | 3,496,763 bytes bundled into every APK/IPA, referenced by zero Dart code (c14) |
+| `AUD-026` | Medium | Closed | Xcode build settings | `flutter_launcher_icons` wrote the icon name into a boolean setting; restored `= YES` | Done | Fixed at c14; `git diff` on `project.pbxproj` is now empty |
+| `AUD-027` | Medium | Open | `PRD-FR-021`; spec §23 | Call `GameAudio.startBgm()` from a real production site, or delete `startBgm`/`stopBgm` + `bgm.mp3` and strike BGM from `PRD-FR-021` | `PH-04` audio owner | Zero call sites in `lib/`; 321,350 bytes preloaded and never played (c14) |
 | `AUD-016` | Medium | Closed | `architecture.md` §6 vs the tree | `ADR-007` — accept implemented design, drop `TASK-021` | Done | Confirmed: `ADR-007` recorded (c6) |
 | `AUD-015` | Medium | Closed | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Cursor / PH-02 | Closed 2026-09-04 — `integration_test/uj01_test.dart` green on Windows |
 
@@ -549,21 +553,72 @@ Required checks:
 
 ### `AUD-018` — `GameAudio.setSoundEnabled` clears the audio cache instead of only setting volume
 
-- **Status:** Open — latent, cannot trigger today.
+- **Status:** Open — code fixed 2026-09-07 (c13), verification rejected 2026-09-07 (c14).
 - **Severity:** Low
 - **Detected:** 2026-09-04 (c6), lead review of the `PH-04` delivery.
 - **Source breached:** Spec §23 (audio); `docs/rules.md` §9 performance budgets.
 - **Affected users/data/components:** `lib/core/audio.dart` `setSoundEnabled`.
-- **Evidence:** The method calls `await FlameAudio.audioCache.clearAll()` before setting BGM volume. Clearing the cache discards every preloaded clip; it is not a volume operation. The whole body is behind `if (!_ready) return;` and `_ready` is permanently `false` while `assets/audio/` is empty, so nothing happens today.
-- **Reproduction:** Not reproducible until audio assets ship and `init()` sets `_ready`. At that point, toggling sound off then on would force a re-load of all eight clips, likely with an audible stall on the first cue after the toggle.
+- **Evidence:** The method called `await FlameAudio.audioCache.clearAll()` before setting BGM volume. Clearing the cache discarded every preloaded clip.
+- **Reproduction:** Resolved.
 - **Expected:** Toggling sound sets volume (or gates playback) and leaves the preloaded cache intact.
-- **Impact:** None today. A latent stutter the moment the blocked audio assets arrive — and it will look like an asset problem rather than a settings-code problem, which is what makes it worth recording now.
+- **Impact:** Fixed; no audio cache discard on toggle.
 - **Likely cause:** Written against an empty `assets/audio/`, so the line could never be observed to misbehave.
-- **Remediation task:** Drop the `clearAll()` call when the audio assets land and this path first becomes live; fold into the `PH-04` audio completion work.
-- **Owner/due:** Whoever completes `PH-04`'s audio half, once assets exist.
-- **Workaround:** N/A — inert.
-- **Retest evidence:** Pending assets.
+- **Remediation task:** Dropped `clearAll()` call in `setSoundEnabled`, preloaded all 8 SFX + BGM in `init()`, and generated 9 audio files under `assets/audio/`.
+- **Owner/due:** GameAudioEngineer (closed 2026-09-07).
+- **Workaround:** N/A.
+- **Retest evidence:** **Insufficient.** The cited test (`test/ph04_exit_gate_test.dart:176`) calls `existsSync()`/`lengthSync()` on nine files. It never calls `GameAudio.init()`, never asserts `_ready`, and never toggles sound — so it cannot fail if this finding regresses. `setSoundEnabled` returns at `lib/core/audio.dart:70` (`if (!_ready) return;`) before reaching the changed lines, and `_ready` is false in every `flutter test` host because there is no audio plugin. The fix is correct by inspection; nothing observes it. Per § "Evidence is required", this does not close.
+- **To close:** either a test that forces `_ready = true` (the `debugSetReady` seam at `audio.dart:112` exists and is unused) and asserts the cache survives a toggle, or a device run that toggles sound off/on mid-battle and hears the next cue with no stall.
 - **Closure/acceptance owner:** Pending.
+
+### `AUD-025` — 3.5 MB of unreferenced images are bundled into every build
+
+- **Status:** Open.
+- **Severity:** Medium
+- **Detected:** 2026-09-07 (c14), git-drift review of the uncommitted c13 tree.
+- **Source breached:** `docs/rules.md` §9 (performance budgets); `PRD-FR-022`, which itself states "in-game canvas rendering continues to be hand-drawn vector code".
+- **Affected users/data/components:** `pubspec.yaml` asset manifest; APK/IPA size on every device.
+- **Evidence:** `pubspec.yaml` declares `- assets/images/`, bundling `banner.jpg` (790,082), `battlefield.jpg` (849,279), `icon.jpg` (613,981) and `icon.png` (1,243,421) — **3,496,763 bytes**. `grep -rn "assets/images\|banner\|battlefield\|icon.png" lib/ test/` returns exactly one hit, `lib/game/worlds/shop_world.dart:163`, which is the unrelated ad-copy string `'No banners, no interstitials.'`. No Dart code loads any of these files. `icon.png` is the `flutter_launcher_icons` source — a build-time input that native mipmaps are generated from, and that needs no runtime bundling at all. `icon.jpg` is redundant with `icon.png`.
+- **Reproduction:** `flutter build apk --debug`, then inspect the bundled asset manifest; all four files are present and unreachable.
+- **Expected:** The runtime asset manifest carries only what code loads. Store/branding art lives outside the bundle.
+- **Impact:** ~3.5 MB of dead download and install weight — roughly 9x the entire 500KB audio budget `PRD-FR-021` was carefully written around.
+- **Likely cause:** `- assets/images/` was added alongside `flutter_launcher_icons` in the same edit, conflating a build-time icon source with runtime assets.
+- **Remediation task:** Remove `- assets/images/` from `pubspec.yaml`; keep `icon.png` on disk as the launcher-icon source. Add a bundle-size row to `docs/rules.md` §9 so this class of regression has a threshold to violate — §9 currently defines none, despite `rules.md:294` telling readers to "manually measure the bundle-size trend referenced in §9".
+- **Owner/due:** `PH-04`/`PH-06` owner. Also record the source/licence/size metadata `rules.md:268` requires for generated binary assets — none was recorded for any of the 13 new binaries.
+- **Workaround:** None needed pre-release; it is size, not behaviour.
+- **Retest evidence:** Pending.
+
+### `AUD-026` — `flutter_launcher_icons` wrote an icon name into a boolean Xcode setting
+
+- **Status:** Closed — fixed 2026-09-07 (c14).
+- **Severity:** Medium
+- **Detected:** 2026-09-07 (c14), git-drift review.
+- **Source breached:** Xcode build-setting types.
+- **Affected users/data/components:** `ios/Runner.xcodeproj/project.pbxproj` lines 445 and 503.
+- **Evidence:** The tool rewrote `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;` to `= AppIcon;` on two build configurations. That setting is a boolean (`YES`/`NO`); the icon name belongs in `ASSETCATALOG_COMPILER_APPICON_NAME`, which was already correctly set to `AppIcon` at lines 377, 558 and 580. Line 324 was left untouched, so the three configurations disagreed with each other.
+- **Reproduction:** Was `grep -n ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS ios/Runner.xcodeproj/project.pbxproj` before the fix.
+- **Expected:** The boolean stays `YES` on every configuration.
+- **Impact:** Would have surfaced as an asset-catalog compile failure or silently disabled Swift asset symbol generation at the first iOS build. No iOS build was run in c13, so it went unnoticed.
+- **Likely cause:** A `flutter_launcher_icons` 0.14.4 bug writing to the wrong key.
+- **Remediation task:** Restored `= YES;` on both lines; `git diff -- ios/Runner.xcodeproj/project.pbxproj` is now empty.
+- **Owner/due:** Done, c14.
+- **Retest evidence:** Diff is empty. A real iOS build has still never been run on this project — that remains a `PH-06` gap, not this finding's.
+
+### `AUD-027` — the bundled BGM track has no production call site and can never play
+
+- **Status:** Open.
+- **Severity:** Medium
+- **Detected:** 2026-09-07 (c14), git-drift review.
+- **Source breached:** `PRD-FR-021`; spec §23.
+- **Affected users/data/components:** `lib/core/audio.dart:77` (`startBgm`), `:85` (`stopBgm`), `assets/audio/bgm.mp3`.
+- **Evidence:** `grep -rn "startBgm\|stopBgm" lib/ test/ integration_test/` returns only the two declarations. Nothing in `main.dart`, `app.dart`, any world, or the lifecycle handler at `app.dart:54-69` starts music. `bgm.mp3` (321,350 bytes — 86% of the audio payload) is nevertheless eagerly loaded into the SFX cache by `init()`. As a knock-on, `setSoundEnabled`'s `FlameAudio.bgm.audioPlayer.setVolume(...)` at `audio.dart:72` operates on a player that never plays.
+- **Reproduction:** Launch the game and listen. There is no ambient track on any screen.
+- **Expected:** Either music plays, or the product does not claim it.
+- **Impact:** `PRD-FR-021` is a `Must` whose music half is undeliverable as built. Same bug class as `AUD-021`: a written, styled, compiling component that no production caller reaches.
+- **Likely cause:** `startBgm`/`stopBgm` were written in the same session that authored `PRD-FR-021`, and the requirement was written to describe the code rather than the code to satisfy a requirement.
+- **Remediation task:** Either call `startBgm()` from `BattleWorld.onLoad` / `HomeWorld.onLoad` and `stopBgm()` from the lifecycle handler, **or** delete both methods, drop `bgm.mp3` and `Sfx.bgm`, and strike the ambient-music clause from `PRD-FR-021`. The second is the smaller change and the honest one if music was never a real requirement — this is an owner call.
+- **Owner/due:** `PH-04` audio owner.
+- **Workaround:** N/A.
+- **Retest evidence:** Pending.
 
 ### `AUD-019` — go_router's routed `Navigator` sat over the `GameWidget` and swallowed every tap; the whole game was untappable
 

@@ -55,3 +55,9 @@ app.*.map.json
 _pgk_tmp/
 .codegraph/
 android/build/
+
+# Agent tooling runtime state (RuFlo / claude-flow swarm + memory db)
+.claude-flow/
+.swarm/
+.claude/proven-config.json
+.claude/.proven-config-version

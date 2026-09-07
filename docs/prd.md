@@ -773,6 +773,63 @@ release requirement and give every requirement testable acceptance criteria.
 - **Excluded behavior:** No portrait-mode layout is ever designed or
   shipped.
 
+### `PRD-FR-021` — Interactive audio and music assets
+
+- **Statement:** The product must ship a complete, low-latency audio landscape:
+  8 discrete mono SFX cues (`place.mp3`, `collect.mp3`, `shoot.mp3`, `hit.mp3`,
+  `explosion.mp3`, `win.mp3`, `lose.mp3`, `sweep.mp3`) matching spec §12.3 durations
+  under 500KB total budget, preloaded at boot via `FlameAudio.audioCache.loadAll`,
+  with volume gating that preserves loaded assets across sound toggles (`AUD-018`
+  fix). An ambient loop (`bgm.mp3`) is bundled and `GameAudio.startBgm()` exists,
+  but **no production code calls it**, so music never plays — tracked as `AUD-027`.
+  BGM is not delivered by this requirement until that call site exists.
+- **User/value:** Primary player; sound feedback communicates placement validity,
+  beam hits, explosions, wave clears, and game outcomes with visceral satisfaction.
+- **Priority:** Must
+- **Journey:** `UJ-01`, `UJ-02`
+- **Preconditions:** Assets bundled in `assets/audio/`; app booted.
+- **Acceptance criteria:**
+  - Given the app boots, when `GameAudio.init()` executes, all 8 SFX cues and BGM
+    are loaded into `FlameAudio.audioCache` without crashing. **Not currently
+    verifiable in `flutter test`**: the test host has no audio plugin, `loadAll`
+    throws into `init()`'s `catch`, and `_ready` stays false — a passing suite is
+    indistinguishable from an empty `assets/audio/`. Needs device or plugin-host
+    evidence (`AUD-018` retest).
+  - Given an in-game event triggers (place, collect, shoot, hit, explosion, win,
+    lose, sweep), the corresponding sound plays immediately if `soundEnabled` is true.
+  - Given the player toggles sound off and back on in Settings, playback volume is
+    muted/unmuted without clearing the audio cache or causing audio dropouts.
+  - Total audio footprint must not exceed the 500KB asset budget.
+- **Data involved:** `Sfx.all` (9 entries incl. `bgm`), `save.sound`, `assets/audio/*.mp3`
+  (375,607 bytes total, within budget; `bgm.mp3` alone is 321,350 of it).
+- **Dependencies:** `PRD-FR-019`
+- **Excluded behavior:** No streaming remote audio, no unlicensed external tracks.
+
+### `PRD-FR-022` — Visual brand identity and launcher icon assets
+
+- **Statement:** The product must provide cohesive visual identity and store-ready
+  assets: a high-contrast optical refraction app icon, promotional hero banner diorama,
+  and in-game tactical concept art in `assets/images/`, with native Android and iOS
+  launcher icon mipmaps configured and built via `flutter_launcher_icons`.
+- **User/value:** Players and store reviewers; establishes clear game identity on
+  device home screens and store listings instead of placeholder Flutter/PvZ icons.
+- **Priority:** Must
+- **Journey:** `UJ-01`, `UJ-02`
+- **Preconditions:** High-resolution source images in `assets/images/`.
+- **Acceptance criteria:**
+  - Given the app is installed on an Android or iOS device, the home screen launcher
+    icon displays the Prism Defense optical prism icon across all device densities.
+  - Store banner (`assets/images/banner.jpg`) and tactical diorama art
+    (`assets/images/battlefield.jpg`) exist and are reviewed by the owner against the
+    dark-lab / neon-optics pillars. This is a human sign-off, not an automated check.
+  - **Not met:** `assets/images/` is declared in `pubspec.yaml` and bundles 3,496,763
+    bytes into every APK/IPA while **no Dart code references any of it**. Launcher
+    icons are a build-time input, not a runtime asset. Tracked as `AUD-025`.
+- **Data involved:** `pubspec.yaml` `flutter_launcher_icons` configuration, icon mipmaps.
+- **Dependencies:** `PRD-FR-020`
+- **Excluded behavior:** In-game canvas rendering continues to be hand-drawn vector code;
+  raster images are utilized for app branding, store assets, and launcher icons.
+
 ### Requirement index
 
 Status vocabulary (defined in [`prd-story.md`](./prd-story.md) §8):
@@ -802,6 +859,8 @@ Status vocabulary (defined in [`prd-story.md`](./prd-story.md) §8):
 | `PRD-FR-018` | IAP Remove Ads | Must | `UJ-01` | MVP | Deferred |
 | `PRD-FR-019` | Settings: sound, haptics, reset progress | Must | `UJ-02` | MVP | Tested |
 | `PRD-FR-020` | Landscape orientation lock | Must | `UJ-01` | MVP | Verified |
+| `PRD-FR-021` | Interactive audio and music assets | Must | `UJ-01`, `UJ-02` | MVP | Built |
+| `PRD-FR-022` | Visual brand identity and launcher icon assets | Must | `UJ-01`, `UJ-02` | MVP | Built |
 
 The Status column tracks build/verification progress against the vocabulary
 above; it is not the requirement's approval state. Every requirement listed

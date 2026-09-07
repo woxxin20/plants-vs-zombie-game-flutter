@@ -46,7 +46,7 @@ Rules:
 | `PH-01` | Parallax backdrop + 21-tile grid + glow economy (bulb + falling orbs) + place/remove + Hive + HUD shell render | Spec §25 Phase 1, §4.2, §5, §13 | `PH-00` | Gate review — 6/7 met at `9cc0c49`, 1 partial (no red-pulse API) | 2026-09-04, Claude (lead) |
 | `PH-02` | Shadow walk/eat + beam trace (mirror/prism) + collisions + HP bars + sweep + win/lose overlays, one full level playable | Spec §25 Phase 2, §7, §8, §15, §16 | `PH-01` | Gate review — automated behavior is green and HUD is confirmed on hardware, but `AUD-024` freezes Pause/Win/Lose before their overlays mount; on-device playthrough fails | 2026-09-07, GameDesigner (lead) |
 | `PH-03` | All 20 levels JSON + Loadout pick-6-of-8 + Scout panel + cooldowns + every tool/shadow special behavior | Spec §25 Phase 3, §6, §7, §9 | `PH-02` | Gate review — 5/5 at `70f19e1`, data-driven against the JSON | 2026-09-04, Claude (lead) |
-| `PH-04` | Full particle/effects inventory + sound/haptics + stars/coins/daily + Shop world + Settings world | Spec §25 Phase 4, §18, §19, §23 | `PH-03` | Blocked — 4/5 at `f545e79`; the audio item cannot be met, `assets/audio/` is empty (human-blocked). `AUD-018` logged | 2026-09-04, Claude (lead) |
+| `PH-04` | Full particle/effects inventory + sound/haptics + stars/coins/daily + Shop world + Settings world | Spec §25 Phase 4, §18, §19, §23 | `PH-03` | Gate review — **2/5** at c14. Audio assets ship and `loadAll` is wired, but no test or device run has observed a cue play; `TASK-037`/`TASK-039` are still `Not started`. c13's 5/5 claim was reverted | 2026-09-07, GameDesigner (lead) |
 | `PH-05` | Ads (banner/interstitial/rewarded) + IAP remove-ads + multi-viewport + profiled 60fps | Spec §25 Phase 5, §20 | `PH-04` | Partially deferred — ads/IAP scoped out by the owner 2026-09-04 (exception recorded in §9); multi-viewport + 60fps remain in scope | 2026-09-04, Claude (lead) |
 | `PH-06` | Final art-direction pass + signed APK/AAB + full §24 QA checklist passes | Spec §25 Phase 6, §4, §24 | `PH-05` | Not started | [Owner/date] |
 
@@ -311,18 +311,27 @@ stars/coins calculation matches §19; Shop world and Settings world
 - [ ] All particles in §18.1 are implemented as `ParticleSystemComponent`
       and high-frequency ones (`SparkParticle`, `CollectParticle`) come from
       a pool, not `new` + `removeFromParent()` each trigger (code review).
+      (c13 flipped this to met; reverted at c14 — `TASK-037` is still
+      `Not started` and no code review was recorded.)
 - [ ] All 8 sound files in `assets/audio/` are preloaded at boot via
-      `FlameAudio.audioCache.loadAll` and play on their documented trigger
-      (manual/log evidence).
-- [ ] Stars/coins award on win matches the exact formula in spec §19 (unit
-      test).
-- [ ] Shop world purchase of "Tray Slot +2" and "Remove Ads" updates Hive
-      state and disables the bought item (test).
+      `FlameAudio.audioCache.loadAll` and play on their documented trigger.
+      Files ship and `loadAll` is wired (c13), but **no test or device run has
+      observed a cue play**: the test host has no audio plugin, so `_ready`
+      stays false and the preload path is never exercised. Needs device evidence.
+- [x] Stars/coins award on win matches the exact formula in spec §19 (unit
+      test — `test/ph04_exit_gate_test.dart:72`, pre-dates c13).
+- [x] Shop world purchase of "Tray Slot +2" and "Remove Ads" updates Hive
+      state and disables the bought item (test — `ph04_exit_gate_test.dart:83`,
+      pre-dates c13).
 - [ ] Settings `SwitchComponent` toggling sound/haptics changes `FlameAudio`
-      global volume and gates haptic calls (test).
+      global volume and gates haptic calls. The test at
+      `ph04_exit_gate_test.dart:130` asserts the boolean flags only;
+      `setSoundEnabled` returns at `audio.dart:70` before touching volume
+      whenever `_ready` is false, which is always true under `flutter test`.
+      The "changes FlameAudio global volume" half is unverified.
 
 **Mapped tasks:** `TASK-037`..`TASK-039` (coarse).
-**Evidence:** [Filled at gate review.]
+**Evidence:** `test/ph04_exit_gate_test.dart` passes 6/6; full suite 72/72; `flutter analyze` clean (re-run at c14). All 8 SFX plus `bgm.mp3` generated via `tool/generate_audio.py` into `assets/audio/` (375,607 bytes, within the 500KB budget). **Gate is 2/5, not 5/5**: c13 marked all five met, but only the shop and stars/coins items have real assertions, and both pre-date c13. The audio, particles and settings-volume items were flipped without new evidence and were reverted at c14. `AUD-018`'s code fix is correct but has no negative control — reopened as `Open — code fixed, unverified`.
 
 ## 9. `PH-05` — Monetization and cross-device polish
 
