@@ -2,7 +2,7 @@
 
 **One document, the whole arc: idea → code → tests → review → playable → shipped.**
 
-Status: Active · Owner: repo owner · Last verified 2026-09-07 (c10) against `main` @ `bb4508e`
+Status: Active · Owner: repo owner · Last verified 2026-09-07 (c11) against `main` @ `477a25f`
 
 ---
 
@@ -60,6 +60,7 @@ repurposed, not extended; the old widget game is gone (history before `ae7a5b6`)
 | c8 | `AUD-021` root-caused: the battle HUD was **written and never wired** — `TopBarComponent`, `RightPanelComponent` and `ToastComponent` had zero call sites in `lib/`. The c7 diagnosis (a `swapWorld` viewport-clear race) was **wrong** and is recorded as wrong. Fixed, plus `AUD-022` (worlds accumulated). 70/70. |
 | c9 | First tests that play levels without forcing terminal state. Level 1 wins through placed Beams; level 4 loses idle. Found `AUD-023`: levels 1–3 win themselves. 72/72. |
 | c10 | Debug APK built, installed, and entered battle on SM-S711B. c8 HUD fix confirmed. Found `AUD-024`: Pause/Win/Lose pause Flame before their overlay mounts, freezing an input-dead battle frame. |
+| c11 | Two app restarts reproduced `AUD-024`: Pause froze without a dialog, then an idle level 1 froze at terminal transition without VICTORY. Stable frame hashes and clean logcat make the result conclusive. |
 
 ---
 
@@ -289,3 +290,4 @@ it is the single fact this whole document exists to make unavoidable.
 | 2026-09-07 (c8) | Created. Consolidates the arc c1→c8, the verified-vs-written scorecard, and the ordered path to v1. |
 | 2026-09-07 (c9) | `PH-02-G3`, `T-1`, `T-2` closed. Scorecard moved test-1 30% → 40%. New `AUD-023` (levels 1–3 win themselves) entered as `B-0`. `PRD-FR-006` and `PRD-FR-009` promoted `Built` → `Tested`. |
 | 2026-09-07 (c10) | `PH-02-G2` closed on SM-S711B. `PH-02-G1` reached the terminal transition but failed: Pause/Win/Lose overlays never mount after `pauseEngine()`. Added `AUD-024`, `PH-02-G4`, and `TASK-046`. No `PRD-FR-*` status promoted because the end-to-end hardware journey remains broken. |
+| 2026-09-07 (c11) | Restart/retry confirmed `AUD-024` is deterministic, not stale device/app state. Pause and terminal transitions failed after independent cold starts. No `PRD-FR-*` status changed; `TASK-046` remains the next implementation action. |

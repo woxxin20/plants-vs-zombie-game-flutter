@@ -3,7 +3,7 @@ document: Active Project Memory and Handoff
 authority: Short-lived current state, recent work, blockers, bugs, and next action
 status: Active
 owner: "Solo developer (repo owner)"
-last_updated: "2026-09-07 13:45 +05:30"
+last_updated: "2026-09-07 14:04 +05:30"
 ---
 
 # Memory — LIGHT vs SHADOW: Prism Defense
@@ -171,6 +171,7 @@ closed — see `docs/audit.md` for retest evidence.
 
 | Date/time | Check | Result | Scope/environment | Audit link |
 | --- | --- | --- | --- | --- |
+| 2026-09-07 (c11) | Two force-stop/cold-start retries | Pause and idle terminal transitions both froze without overlays; byte-identical delayed frames, foreground/awake app, clean logcat | SM-S711B | `AUD-024` confirmed deterministic |
 | 2026-09-07 (c10) | Debug APK build/install/cold launch | Pass; 1.7s cold launch | SM-S711B, Android 16 | `PH-02-G2` |
 | 2026-09-07 (c10) | Home → Loadout → Battle → pause/terminal | Fail: no Pause/Win/Lose overlay; frozen byte-identical frames, no crash/ANR | SM-S711B | `AUD-024` |
 | 2026-09-07 (c9) | `flutter analyze`; `flutter test` | No issues; 72/72 | Local Windows | `PH-02-G3`, `AUD-023` |
@@ -186,6 +187,15 @@ closed — see `docs/audit.md` for retest evidence.
 
 Cycle-by-cycle history lives in `STATE.md` → `LOG`. This section is for
 narrative handoff needing more than one line.
+
+### 2026-09-07 14:04 +05:30 — c11: restart rules out transient device state
+
+Force-stopped and cold-started the app twice. First run tapped Pause during
+wave 1; no dialog appeared and frames after 2s/12s were identical. Second run
+left level 1 idle; it reached the terminal transition, showed no VICTORY dialog,
+and frames at 110s/120s were identical. Activity remained top-resumed, display
+awake, device connected, and logcat clean. `AUD-024` is deterministic. Restart
+only escapes a stuck battle; it does not fix the next transition.
 
 ### 2026-09-07 13:45 +05:30 — c10: HUD confirmed; overlay ordering fails on device
 
