@@ -3,16 +3,16 @@
 <!-- AGENT-OWNED. Whole-file rewrite only, never patched.
      Humans edit HUMAN NOTES only. Rules: .ai/STATE-PROTOCOL.md -->
 
-CYCLE:   10 (open)
-UPDATED: 2026-09-07T13:28+05:30
+CYCLE:   10 (closed)
+UPDATED: 2026-09-07T13:49+05:30
 BY:      lead:codex
 BRANCH:  main
-COMMIT:  64c6bec
+COMMIT:  9e86efd
 STATUS:  BLOCKED
 
 ## NEXT ACTION
-Run `adb devices -l` after phone-side USB debugging authorization; serial
-`RZCX509DE5F` must report `device` before installation can start.
+Implement `TASK-046` in `lib/game/worlds/battle_world.dart` so `_showOverlay`
+mounts before `pauseEngine()` on Pause, Win, and Lose transitions.
 
 ## PROJECT
 Type:    Flutter 3.47 + Flame 1.38 landscape game, offline, no backend
@@ -28,17 +28,17 @@ Done when:
 - [x] pure rules (optics, placement, waves, scoring) written and unit-tested
 - [x] `flutter analyze` clean across lib/
 - [ ] a level is playable start to win/lose on a device
-      (played to both terminal states in-suite; unverified on hardware)
+      (c10 reached terminal transition, but AUD-024 hid every terminal overlay)
 
 ## BROKEN NOW
-- Device gate blocked: Windows sees SM-S711B USB and ADB interfaces, but `adb`
-  first reported serial `RZCX509DE5F` as `offline`, then stopped listing it
-  after `adb reconnect offline`. Debug APK builds successfully.
+- AUD-024 (High, open): Pause, Win, and Lose call `pauseEngine()` before
+  `_showOverlay`. Flame never flushes the queued viewport child, leaving a
+  frozen, input-dead battle frame. The tests mask it by resuming the engine in
+  `_flushLifecycle`. Reproduced twice on SM-S711B with no crash/ANR.
 - AUD-023 (High, open): levels 1–3 are WON by doing nothing. One sweep clears
-  a whole lane (spec §17) and a 3-wave level never presents more than three
-  lane-arrivals, so three free sweeps absorb the level. Level data, not rules
-  — needs tool/gen_levels.py retuned and regenerated. Balance is an owner call.
-- Reproduce device block: `adb kill-server`; `adb start-server`; `adb devices -l`.
+  a whole lane and three free sweeps absorb every 3-wave early level.
+- Reproduce AUD-024: launch level 1 and tap Pause during wave 1; no `PAUSED`
+  overlay appears and the frame stops changing.
 
 ## DECISIONS / DO NOT TOUCH
 - Pure gameplay rules stay in lib/data/{optics,rules}.dart without Flame/Flutter imports.
@@ -51,8 +51,7 @@ Done when:
 - google_mobile_ads + in_app_purchase are commented out in pubspec: 6.0.0 breaks Gradle 9.3.1 and blocked the entire Android build. Restore lib/core/monetization.dart from git when monetization resumes.
 
 ## NEEDS HUMAN
-- [ ] Reconnect/unlock SM-S711B, enable USB debugging, and approve this computer;
-      `adb devices -l` currently lists no Android target.
+- [ ] Approve implementation of `TASK-046`; c10 was requested as testing only.
 - [ ] AUD-023: how hard should levels 1–3 be? Fixing it means retuning
       tool/gen_levels.py and regenerating all 20 levels — a balance call.
 - [ ] Native bundle id + app label, still `plants_vs_zombie` and visible on the device home screen (ARCH-Q-003).
@@ -64,20 +63,20 @@ Done when:
 
 ## COST NOTES
 - Never read build/ or .dart_tool/ — generated and high-volume.
-- A regression test that has never failed proves nothing. Break the production path (stash lib/, or zero a value in assets/data/) and confirm the test fails behaviourally before trusting it. Assert through the production surface, not through getters added for the test.
+- A regression test that has never failed proves nothing. Break the production path and confirm the test fails behaviourally before trusting it.
+- Never let a test helper repair the production transition it checks. `_flushLifecycle` resumed Flame after Pause/Win/Lose and masked AUD-024.
 - A win assertion is worthless where an idle player also wins. Assert on what only play can produce — unspent sweeps, not GameState.won.
-- Dispatch cursor-agent with `--print`; its TUI otherwise prints forever after its stop condition.
-- codegraph is indexed on main and gitignored (83 files, 1331 nodes). `codegraph index` fails while the MCP server holds the db — use `codegraph sync`. A worktree has no index of its own.
-- RuFlo's MCP server IS running; it is just absent from .mcp.json, so its tools never reach a Claude Code session. Drive it with `ruflo mcp exec --tool <name> --params '<json>'`. agent_spawn takes `agentType`, NOT `type`, despite its own docs. A spawned agent is a coordination record and executes nothing.
-- Device loop that works: `flutter build apk --debug`, `adb install -r`, `adb shell am start -n com.example.plants_vs_zombie/.MainActivity`, `adb shell input tap X Y`, `adb shell screencap`. Git Bash mangles `/sdcard/` — prefix `MSYS_NO_PATHCONV=1` and use `//sdcard/`.
-- In widget tests real I/O belongs in setUpAll; Flame's ticker never idles so pumpAndSettle times out. A battle sims at 1/30s per pump (update clamps dt), so 100s of game time is ~3000 pumps — a few seconds of wall clock.
+- codegraph is indexed on main and gitignored. `codegraph index` fails while the MCP server holds the db — use `codegraph sync`.
+- RuFlo's MCP server is reached with `ruflo mcp exec --tool <name> --params '<json>'`; agent_spawn takes `agentType`, not `type`.
+- Device loop: `flutter build apk --debug`, `adb install -r`, `adb shell am start -n com.example.plants_vs_zombie/.MainActivity`, ADB taps/screenshots.
+- In widget tests real I/O belongs in setUpAll; Flame's ticker never idles, so pump fixed frames. Do not resume the engine merely to make an overlay assertion pass.
 
 ## HUMAN NOTES
 (free text — agent copies this block through byte-for-byte)
 
 ## LOG
-- 2026-09-07 | c10 | Device rerun blocked: Windows sees SM-S711B USB/ADB hardware, but adb reported offline then lost it. Debug APK built successfully; install/playthrough not run.
-- 2026-09-07 | c9 | First tests that actually PLAY a level (PH-02-G3): level 1 won with all three sweeps unspent, level 4 lost by an idle player — both terminal states now reachable by play, not only by assignment. Negative-controlled (zeroed Beam dmg → fail). Closed T-1 (tautological special-case asserts) and T-2 (reachability pass). Found AUD-023: levels 1–3 win themselves. PRD-FR-006/009 Built → Tested. 72/72, analyze clean. Still no device.
-- 2026-09-07 | c8 | Root-caused AUD-021: the HUD was never wired to BattleWorld — the c7 diagnosis (a swapWorld viewport-clear race) was WRONG and is recorded as such in audit.md. Wired TopBar + RightPanel onto camera.viewport with a one-direction per-frame sync; closed AUD-022. New test verified against the pre-fix tree: 0/4 → 4/4. 70/70.
-- 2026-09-04 | c7 | First device run in project history (SM-S711B): Android build was broken by google_mobile_ads vs Gradle 9.3.1; deferring ads fixed it. Found and fixed AUD-019 (routed Navigator swallowed EVERY tap) and AUD-020 (loadout demanded 6 tools, level 1 offers 3). 66/66
-- 2026-09-04 | c6 | Filled AGENTS.md §6, rewrote README as the doc-ownership map, reconciled PH-00/PH-01, ADR-007 dropped the never-built Riverpod layer; Cursor delivered PH-01..PH-04 under bounded assignments; review found AUD-017
+- 2026-09-07 | c10 | Debug APK built/installed/cold-launched on SM-S711B. Home→Loadout→Battle, HUD, placement, Glow and waves work. Found AUD-024: Pause/Win/Lose freeze before overlays mount; tests hide it with resumeEngine. PH-02-G2 done, G1 blocked. Added TASK-046.
+- 2026-09-07 | c9 | First tests that PLAY a level: level 1 won with all sweeps unspent, level 4 lost idle. Negative-controlled. Closed T-1/T-2. Found AUD-023. PRD-FR-006/009 Built→Tested. 72/72, analyze clean.
+- 2026-09-07 | c8 | Root-caused AUD-021: HUD was never wired to BattleWorld. Wired TopBar + RightPanel onto camera.viewport; closed AUD-022. Negative control 0/4→4/4. 70/70.
+- 2026-09-04 | c7 | First device run: fixed Android build, AUD-019 (Navigator swallowed every tap), and AUD-020 (loadout unreachable). 66/66.
+- 2026-09-04 | c6 | Filled AGENTS.md §6, rewrote README ownership map, reconciled PH-00/PH-01, recorded ADR-007, delivered PH-01..PH-04, found AUD-017.
