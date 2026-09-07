@@ -2,7 +2,7 @@
 
 **One document, the whole arc: idea → code → tests → review → playable → shipped.**
 
-Status: Active · Owner: repo owner · Last verified 2026-09-07 (c8) against `main` @ `9b0ffa1`
+Status: Active · Owner: repo owner · Last verified 2026-09-07 (c10) against `main` @ `bb4508e`
 
 ---
 
@@ -58,6 +58,8 @@ repurposed, not extended; the old widget game is gone (history before `ae7a5b6`)
 | c6 | `AGENTS.md` §6 filled, README rewritten as the doc-ownership map, `ADR-007` dropped the Riverpod state layer that was never built. Cursor delivered PH-01..PH-04 under bounded assignments; review found `AUD-017` (`game.world` ≠ `camera.world`). |
 | c7 | **First device run in the project's history** (SM-S711B). The Android build had been broken the whole time — `google_mobile_ads 6.0.0` calls `configurations.all`, removed in Gradle 9.3.1. Deferring ads/IAP unblocked it. Two criticals found within ten minutes: `AUD-019` (routed Navigator swallowed **every** tap — the game was entirely untappable) and `AUD-020` (loadout demanded 6 tools, level 1 offers 3 — **no level was startable**). |
 | c8 | `AUD-021` root-caused: the battle HUD was **written and never wired** — `TopBarComponent`, `RightPanelComponent` and `ToastComponent` had zero call sites in `lib/`. The c7 diagnosis (a `swapWorld` viewport-clear race) was **wrong** and is recorded as wrong. Fixed, plus `AUD-022` (worlds accumulated). 70/70. |
+| c9 | First tests that play levels without forcing terminal state. Level 1 wins through placed Beams; level 4 loses idle. Found `AUD-023`: levels 1–3 win themselves. 72/72. |
+| c10 | Debug APK built, installed, and entered battle on SM-S711B. c8 HUD fix confirmed. Found `AUD-024`: Pause/Win/Lose pause Flame before their overlay mounts, freezing an input-dead battle frame. |
 
 ---
 
@@ -72,8 +74,8 @@ Two numbers, because they are very different:
 | --- | --- | --- |
 | Code written | 90 | 8 tools, all shadow types, optics, waves, economy, 20 level JSONs, 6 worlds, full HUD |
 | Verified by tests | 75 | 72 tests, `flutter analyze` clean. A level is now played to a win, and to a loss, with no forced state (c9) |
-| Verified on hardware | 15 | Launched once, navigated, battle grid loaded. Never played |
-| **A level played start → win/lose** | **50** | **In the suite, yes (c9). By a human on a device, still never.** |
+| Verified on hardware | 25 | Home → Loadout → Battle, tool placement, Glow collection, waves, and HUD confirmed on SM-S711B; terminal/pause overlays fail (`AUD-024`) |
+| **A level played start → win/lose** | **50** | **In the suite, yes (c9). Hardware reached the terminal transition in c10, but no overlay mounted; human end-to-end play still fails.** |
 | Ship-ready | 10 | No audio, no bundled font, wrong app id, no keystore |
 
 ### Phase gates
@@ -83,7 +85,7 @@ Two numbers, because they are very different:
 | `PH-07` governance bootstrap | 100 | Complete |
 | `PH-00` engine bootstrap | 70 | 4/6 — device + fps items unrun |
 | `PH-01` grid, glow economy, HUD shell | 85 | 6/7 |
-| `PH-02` combat core | 85 | 6/7 — played to win and to loss in-suite (c9); on-device playthrough still unrun |
+| `PH-02` combat core | 85 | 6/7 — played to both outcomes in-suite; hardware reaches battle but `AUD-024` blocks pause/win/lose UI |
 | `PH-03` full content | 100 | 5/5, data-driven against the JSON |
 | `PH-04` juice | 80 | 4/5 — audio blocked, `assets/audio/` is empty |
 | `PH-05` monetization + polish | 20 | Ads/IAP descoped by owner; 60fps never profiled |
@@ -96,7 +98,7 @@ Two numbers, because they are very different:
 This project's single most expensive lesson, stated plainly:
 
 > **A clean analyzer, 70 passing tests and a correct-looking screenshot did not
-> mean the product worked.** Four times. Twice catastrophically.
+> mean the product worked.** Five times. Twice catastrophically.
 
 | Defect | What a green suite said | What was true |
 | --- | --- | --- |
@@ -104,14 +106,18 @@ This project's single most expensive lesson, stated plainly:
 | `AUD-019` | 62/62 pass | **Every tap in the game was swallowed. Nothing was clickable.** |
 | `AUD-020` | 62/62 pass | **No level could be started from a fresh save.** |
 | `AUD-021` | 66/66 pass | Battle had no HUD; no tray, so nothing could be placed |
+| `AUD-024` | 72/72 pass | Pause/Win/Lose froze the battle before their overlays mounted |
 
-Two test-design faults let these through, and both are still worth guarding:
+Three test-design faults let these through, and all are still worth guarding:
 
 1. **A guard without a reachability check is half a test.** `PH-03` asserted
    "≠6 tools is blocked" — true the entire time — while 6 was unreachable.
 2. **A component tested in isolation never asks whether anything mounts it.**
    `test/ph01_exit_gate_test.dart:247` builds a bare `FlameGame`, adds a
    `TopBarComponent` by hand, and therefore could never see `AUD-021`.
+3. **A test helper must not repair the production transition it checks.**
+   `_flushLifecycle` resumes the engine after Pause/Win/Lose, letting queued
+   overlays mount. Real gameplay never performs that resume, exposing `AUD-024`.
 
 Rules adopted from this, now standing:
 
@@ -151,9 +157,10 @@ In order. Each step names its exit criterion. Nothing below is optional for v1.
 
 | ID | Work | Exit criterion |
 | --- | --- | --- |
-| `PH-02-G1` | Device playthrough | On the SM-S711B: PLAY → START BATTLE → HUD renders → place a tool → a shadow dies → reach win **or** lose. One human, one level, end to end. |
-| `PH-02-G2` | Confirm the c8 HUD fix on hardware | The glow chip, wave counter, pause button and tray are visible and respond |
+| `PH-02-G1` | Device playthrough — **blocked by `AUD-024`** | On the SM-S711B: PLAY → START BATTLE → HUD renders → place a tool → a shadow dies → reach win **or** lose. One human, one level, end to end. c10 reached the terminal transition, then froze with no overlay. |
+| `PH-02-G2` | ✅ **Done (c10)** — confirm the c8 HUD fix on hardware | Glow chip, wave counter, pause button, tray, health bars, and rewarded-glow control rendered on SM-S711B; tool selection/placement and Glow collection responded to ADB taps |
 | `PH-02-G3` | ✅ **Done (c9)** — `test/battle_playthrough_test.dart` | Plays level 1 to a win with every lane sweep unspent, and lets level 4 run to a loss. Negative-controlled: fails when Beam damage is zeroed |
+| `PH-02-G4` | Fix `AUD-024` | Pause/Win/Lose overlays mount before the engine stops, remain interactive, and pass a regression that never resumes the engine to flush them |
 
 Until `PH-02-G1` passes, the honest answer to "does the game work?" is
 **unknown**, regardless of the test count. `PH-02-G3` narrowed it: the
@@ -281,3 +288,4 @@ it is the single fact this whole document exists to make unavoidable.
 | --- | --- |
 | 2026-09-07 (c8) | Created. Consolidates the arc c1→c8, the verified-vs-written scorecard, and the ordered path to v1. |
 | 2026-09-07 (c9) | `PH-02-G3`, `T-1`, `T-2` closed. Scorecard moved test-1 30% → 40%. New `AUD-023` (levels 1–3 win themselves) entered as `B-0`. `PRD-FR-006` and `PRD-FR-009` promoted `Built` → `Tested`. |
+| 2026-09-07 (c10) | `PH-02-G2` closed on SM-S711B. `PH-02-G1` reached the terminal transition but failed: Pause/Win/Lose overlays never mount after `pauseEngine()`. Added `AUD-024`, `PH-02-G4`, and `TASK-046`. No `PRD-FR-*` status promoted because the end-to-end hardware journey remains broken. |

@@ -3,7 +3,7 @@ document: Active Project Memory and Handoff
 authority: Short-lived current state, recent work, blockers, bugs, and next action
 status: Active
 owner: "Solo developer (repo owner)"
-last_updated: "2026-09-04 00:30 +05:30"
+last_updated: "2026-09-07 13:45 +05:30"
 ---
 
 # Memory — LIGHT vs SHADOW: Prism Defense
@@ -12,10 +12,10 @@ last_updated: "2026-09-04 00:30 +05:30"
 > [`STATE.md`](../STATE.md) at repo root — agent-owned, whole-file rewrite per
 > [`.ai/STATE-PROTOCOL.md`](../.ai/STATE-PROTOCOL.md). This file keeps only
 > durable handoff narrative that STATE.md's 130-line cap and 5-entry log have
-> no room for. `AUD-009` (uncommitted work), the original `AUD-008`
-> (`Curves` error), and `AUD-011` (tokens.dart `TextStyle`) are now closed —
-> the repo is committed, that bug is fixed and confirmed (`flutter analyze`
-> 34, `flutter test` 34/34). Current blocker is `AUD-012` (below).
+> no room for. Current verified baseline is `flutter analyze` clean and
+> `flutter test` 72/72. The active gameplay blockers are `AUD-023` (levels
+> 1–3 idle-win) and `AUD-024` (Pause/Win/Lose overlays never mount after the
+> engine pauses).
 
 This is the project's **working memory**, not a specification. It answers:
 "Where are we now, what changed, what is blocked, and what should happen next?"
@@ -42,27 +42,23 @@ authoritative source remains unchanged and the mismatch must be recorded in
   lane-defense game built on Flutter + Flame. See
   `LIGHT_vs_SHADOW_Prism_Defense_Flame_Spec.md` for full design (product
   truth belongs to `docs/prd.md` once authored, not here).
-- **Current phase:** `PH-07` (governance bootstrap) — Complete. `PH-00`
-  (Flame engine bootstrap) — In progress; `flutter analyze` is clean and the
-  app shell boots under test, but no level has been played on a device yet.
-- **Current objective:** Get a `flutter analyze`-clean, test-covered
-  `FlameGame` bootstrap running landscape-locked at 60fps (`PH-00` exit
-  gate, `docs/phases.md` §4), then proceed to `PH-01`/`PH-02`.
-- **Active task:** `AUD-021` — entering a battle on device renders the grid
-  and lane sweeps but no HUD at all, so a battle cannot be played. Prime
-  suspect is `LightVsShadowGame.swapWorld`, which clears `camera.viewport`
-  on its last line while the incoming world's `onLoad` (which adds the HUD)
-  runs asynchronously afterwards.
-- **Last verified version:** Merged to `main` as `54eaee2` (29 commits from
-  `overnight/gnhf-prism-defense-20260903`, which is retained). `flutter
-  analyze` clean, `flutter test` 66/66 on `main`. `AUD-009`, `AUD-011`..
-  `AUD-017`, `AUD-019` and `AUD-020` are closed; `AUD-018` and `AUD-021`
-  are open.
-- **Overall health:** The game builds, installs, launches and navigates on
-  real hardware (SM-S711B, Android 16) — first achieved 2026-09-04. It is
-  not yet playable: `AUD-021` blocks the battle HUD.
+- **Current phase:** `PH-02` gate review. Automated play reaches win and loss;
+  c10 hardware testing confirmed Home → Loadout → Battle and the full HUD,
+  but Pause/Win/Lose strand the player on a frozen frame (`AUD-024`).
+- **Current objective:** Fix `TASK-046`, negative-control the overlay ordering
+  regression, then repeat `PH-02-G1` on SM-S711B.
+- **Active task:** `AUD-024` / `TASK-046` — mount Pause/Win/Lose overlays
+  before stopping Flame. Current tests hide the defect by resuming the engine
+  in `_flushLifecycle` after the production transition.
+- **Last verified version:** `main` at `bb4508e` for state; production baseline
+  `4f8ba3b`, with `flutter analyze` clean and `flutter test` 72/72. c10 debug
+  APK built, installed, and cold-launched on SM-S711B in 1.7s.
+- **Overall health:** The game builds, installs, launches, navigates, renders
+  its battle HUD, places tools, collects Glow, and advances waves on SM-S711B.
+  It is not end-to-end playable: `AUD-024` blocks every pause and terminal
+  dialog; `AUD-023` also lets levels 1–3 win without play.
 
-  **The lesson of this project, now demonstrated three times.** A green
+  **The lesson of this project, now demonstrated five times.** A green
   suite and a correct-looking screenshot are not evidence that the product
   works. `AUD-014` (crash on first boot), `AUD-017` (dead lifecycle branch),
   `AUD-019` (every tap swallowed — the entire game unusable) and `AUD-020`
@@ -81,7 +77,9 @@ authoritative source remains unchanged and the mismatch must be recorded in
 
   Also do not assume `implementation_plan.md`'s per-task `Not started`
   labels reflect reality — reconcile against actual files first
-  (`AUD-008`'s original lesson, which recurred in `AUD-016`).
+  (`AUD-008`'s original lesson, which recurred in `AUD-016`). Never let a test
+  helper resume an engine after the production transition it is checking;
+  `_flushLifecycle` did that and masked `AUD-024`.
 
 ## 3. What is implemented and verified
 
@@ -105,11 +103,10 @@ implemented/verified here.
 
 ## 5. Exact next actions
 
-The single next action lives in `STATE.md` → `NEXT ACTION`: run
-`flutter run -d <device>` from the overnight worktree and play level 1 from
-Home through Loadout to a win or a loss. Everything downstream of that
-(`TASK-011` fonts, `TASK-012` native ids) is blocked on human decisions
-listed under `NEEDS HUMAN`.
+The single next action lives in `STATE.md` → `NEXT ACTION`: fix `TASK-046` in
+`BattleWorld.pause`, `_finishWon`, and `_finishLost`, then repeat the device
+path. Do not mark `PH-02-G1` done until a terminal overlay is visible and its
+primary action responds on SM-S711B.
 
 ## 6. Blockers and decisions needed
 
@@ -131,6 +128,8 @@ closed — see `docs/audit.md` for retest evidence.
 | `AUD-012` | `flutter analyze` failed (12 issues); app could not boot (`lib/app.dart` missing) | N/A — fixed | Import (`e8a179d`), lints (`adf7676`), `lib/app.dart` shell (`733fb55`) | Closed |
 | `AUD-013` | `flutter analyze` failed (22 errors) — `const Vector2(...)` across 5 world screens | N/A — fixed | `adf7676` | Closed |
 | `AUD-014` | Every beam, shadow death and home-diorama fade threw `Can only apply this effect to OpacityProvider` on mount | N/A — fixed | `FadeableRender` mixin, `733fb55` | Closed |
+| `AUD-023` | Levels 1–3 win without player input | None | Retune `tool/gen_levels.py`; regenerate | Open — High |
+| `AUD-024` | Pause/Win/Lose freeze on the last battle frame; no overlay or recovery action appears | Force-stop and relaunch; battle progress is lost | `TASK-046` | Open — High |
 | `AUD-002` | No bundled typeface; text falls back to system default | Ship with system font as a last resort if unresolved | `TASK-011` | Open |
 | `AUD-005` | App id/label still `plants_vs_zombie` | None needed for local dev only | `TASK-012` | Open |
 | `AUD-006` | No AdMob/IAP ids yet | Use Google test ad unit ids in dev, never ship them | `TASK-040`, `TASK-041` | Open, deferred to `PH-05` |
@@ -148,9 +147,8 @@ closed — see `docs/audit.md` for retest evidence.
 
 ## 9. Environment and operational notes
 
-- **Active branch/worktree:** `overnight/gnhf-prism-defense-20260903`, in the
-  sibling worktree `../plants-vs-zombie-game-flutter-gnhf-overnight`. `main`
-  still holds the WIP repurpose commit `ae7a5b6`; nothing has been merged.
+- **Active branch/worktree:** `main` in the repository root. The retained
+  overnight worktree is historical; current work is committed directly here.
 - **Runtime/tool versions:** Flutter 3.47.0 stable; Dart SDK constraint
   `>=3.11.1 <4.0.0` (`pubspec.yaml`). Full dependency list is
   `pubspec.yaml`'s job, not repeated here.
@@ -173,6 +171,9 @@ closed — see `docs/audit.md` for retest evidence.
 
 | Date/time | Check | Result | Scope/environment | Audit link |
 | --- | --- | --- | --- | --- |
+| 2026-09-07 (c10) | Debug APK build/install/cold launch | Pass; 1.7s cold launch | SM-S711B, Android 16 | `PH-02-G2` |
+| 2026-09-07 (c10) | Home → Loadout → Battle → pause/terminal | Fail: no Pause/Win/Lose overlay; frozen byte-identical frames, no crash/ANR | SM-S711B | `AUD-024` |
+| 2026-09-07 (c9) | `flutter analyze`; `flutter test` | No issues; 72/72 | Local Windows | `PH-02-G3`, `AUD-023` |
 | 2026-09-04 (c5) | `flutter analyze` | No issues found | Local Windows, `HEAD` `733fb55` | `AUD-011`..`AUD-014` all closed |
 | 2026-09-04 (c5) | `flutter test` | 35/35 pass | Local Windows | `AUD-014` (found by the new boot test) |
 | 2026-09-04 (c5) | Play a level on a device | Not run | — | The remaining `PH-00` gap |
@@ -185,6 +186,20 @@ closed — see `docs/audit.md` for retest evidence.
 
 Cycle-by-cycle history lives in `STATE.md` → `LOG`. This section is for
 narrative handoff needing more than one line.
+
+### 2026-09-07 13:45 +05:30 — c10: HUD confirmed; overlay ordering fails on device
+
+Built and installed the debug APK on SM-S711B, then drove Home → Loadout →
+Battle with ADB taps. Tool selection, placement, Glow collection, wave
+progression, and the c8 HUD all worked. The run froze at the terminal transition
+without a dialog. A second run tapped Pause during wave 1 and reproduced the
+same frozen frame with no overlay. Android kept the activity top-resumed and
+awake; logcat showed no Flutter exception, fatal exception, or ANR.
+
+Root cause is `AUD-024`: production calls `pauseEngine()` before adding its
+viewport overlay. The test helper `_flushLifecycle` resumes the engine after
+that call, allowing the queued overlay to mount and masking the device failure.
+`TASK-046` owns remediation. `PH-02-G2` is done; `PH-02-G1` remains open.
 
 ### 2026-09-04 18:20 +05:30 — c7: first device run; two critical defects found and fixed; merged to main
 

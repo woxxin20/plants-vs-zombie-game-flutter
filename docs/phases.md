@@ -3,7 +3,7 @@ document: Project Phases and Milestone Gates
 authority: Build sequence, milestone scope, entry/exit criteria, release gates
 status: Draft
 owner: "Solo developer (repo owner)"
-last_updated: "2026-09-03"
+last_updated: "2026-09-07"
 ---
 
 # Phases — LIGHT vs SHADOW: Prism Defense
@@ -44,7 +44,7 @@ Rules:
 | `PH-07` | Repo repurposed from PvZ-widgets to Flame governance-kit + resolvable pubspec | Repo history, `docs/audit.md` AUD-001..AUD-008 | None | Complete | 2026-09-03, solo dev |
 | `PH-00` | `FlameGame`/`CameraComponent` bootstrap renders inside `WidgetsApp`, landscape-locked, empty-scene 60fps baseline | Spec §25 Phase 0, §26 | `PH-07` | In progress — 4/6 gate items met at `397ce19`; the 2 render/device items are unrun and `TASK-012` is blocked on `ARCH-Q-003` | 2026-09-04, Claude (lead) |
 | `PH-01` | Parallax backdrop + 21-tile grid + glow economy (bulb + falling orbs) + place/remove + Hive + HUD shell render | Spec §25 Phase 1, §4.2, §5, §13 | `PH-00` | Gate review — 6/7 met at `9cc0c49`, 1 partial (no red-pulse API) | 2026-09-04, Claude (lead) |
-| `PH-02` | Shadow walk/eat + beam trace (mirror/prism) + collisions + HP bars + sweep + win/lose overlays, one full level playable | Spec §25 Phase 2, §7, §8, §15, §16 | `PH-01` | Gate review — 6/7 at `d39b6b0`; on-device playthrough unrun (no hardware). `AUD-017` found and fixed in review | 2026-09-04, Claude (lead) |
+| `PH-02` | Shadow walk/eat + beam trace (mirror/prism) + collisions + HP bars + sweep + win/lose overlays, one full level playable | Spec §25 Phase 2, §7, §8, §15, §16 | `PH-01` | Gate review — automated behavior is green and HUD is confirmed on hardware, but `AUD-024` freezes Pause/Win/Lose before their overlays mount; on-device playthrough fails | 2026-09-07, GameDesigner (lead) |
 | `PH-03` | All 20 levels JSON + Loadout pick-6-of-8 + Scout panel + cooldowns + every tool/shadow special behavior | Spec §25 Phase 3, §6, §7, §9 | `PH-02` | Gate review — 5/5 at `70f19e1`, data-driven against the JSON | 2026-09-04, Claude (lead) |
 | `PH-04` | Full particle/effects inventory + sound/haptics + stars/coins/daily + Shop world + Settings world | Spec §25 Phase 4, §18, §19, §23 | `PH-03` | Blocked — 4/5 at `f545e79`; the audio item cannot be met, `assets/audio/` is empty (human-blocked). `AUD-018` logged | 2026-09-04, Claude (lead) |
 | `PH-05` | Ads (banner/interstitial/rewarded) + IAP remove-ads + multi-viewport + profiled 60fps | Spec §25 Phase 5, §20 | `PH-04` | Partially deferred — ads/IAP scoped out by the owner 2026-09-04 (exception recorded in §9); multi-viewport + 60fps remain in scope | 2026-09-04, Claude (lead) |
@@ -252,8 +252,11 @@ full level (level 1) is playable start to finish without a crash.
       `didChangeAppLifecycleState(paused)` (QA checklist #10, test or
       manual observation).
 
-**Mapped tasks:** `TASK-023`..`TASK-032`
-**Evidence:** [Filled at gate review.]
+**Mapped tasks:** `TASK-023`..`TASK-032`, `TASK-046`
+**Evidence:** 2026-09-07 c10 on SM-S711B: build/install/cold launch passed;
+Home → Loadout → Battle, HUD, placement, Glow collection, and wave progression
+worked. `AUD-024` blocks this gate because Pause/Win/Lose overlays do not mount.
+Remediation: `TASK-046`.
 
 ## 7. `PH-03` — Full content: 20 levels, loadout, all tools/shadows
 

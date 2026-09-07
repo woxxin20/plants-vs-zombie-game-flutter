@@ -3,7 +3,7 @@ document: Implementation Reality Audit
 authority: Evidence of current implementation, conformance, drift, defects, and release risk
 status: Active
 owner: "Solo developer (repo owner)"
-last_updated: "2026-09-03"
+last_updated: "2026-09-07"
 ---
 
 # Audit — LIGHT vs SHADOW: Prism Defense
@@ -178,6 +178,7 @@ section becomes meaningful starting at `PH-00`'s exit gate (empty-scene
 | 2026-09-07 (c9) | `flutter test test/ph03_exit_gate_test.dart` | Local Windows, `ShadowDef.resistsBeam` forced to `false` | **Fail** — "fog veil" | Negative control for `T-1`: the old assertion compared `id == 'fog'` with itself and could not fail | `T-1` |
 | 2026-09-07 (c9) | Idle probe, all 20 levels, no input | Local Windows | Levels 1–3 **won**, 4–20 lost | Found `AUD-023`. Throwaway harness, not committed | `AUD-023` |
 | 2026-09-07 (c9) | `flutter analyze` + `flutter test` | Local Windows | Pass — `No issues found!`, 72/72 | 70 existing + 2 played-level tests | `PH-02-G3`, `T-1`, `T-2` |
+| 2026-09-07 (c10) | `flutter build apk --debug`; install; cold launch; ADB tap/screenshot playthrough | SM-S711B, Android 16, serial `RZCX509DE5F` | **Fail at terminal/pause UI** — build/install/launch passed; Home → Loadout → Battle, tool placement, Glow collection, waves, and HUD worked; pause and terminal transitions froze on the last battle frame with no overlay | Cold launch 1.7s. Two screenshots 15s apart and a post-pause screenshot were byte-identical (`SHA-256 01CF05…AAB6`); activity remained foreground/awake; no Flutter exception, fatal exception, or ANR in logcat | `PH-02-G2` passed; `PH-02-G1` blocked; found `AUD-024` |
 | 2026-09-04 (c6) | `flutter test` | Local Windows, `HEAD` `9cc0c49` | Pass — 42/42 (+7 `PH-01` gate tests) | Re-run by the lead; diff verified test-only (1 file, +285 lines, zero production change) | `PH-01` gate 6/7, gate 3 partial |
 | 2026-09-03 | `flutter --version` | Local Windows | Pass — 3.47.0 stable | Briefed baseline, not re-run this pass | None |
 | 2026-09-03 | `flutter pub get` | Local Windows, rewritten `pubspec.yaml` | Pass — resolved `flame 1.38.2`, `flame_audio 2.12.2`, `flame_riverpod 5.4.21`, `flutter_riverpod 2.6.1`, `go_router 16.3.0`, `hive_ce_flutter 2.3.4`, `google_mobile_ads 6.0.0`, `in_app_purchase 3.3.0` (per brief) | Briefed baseline, not re-run this pass | None |
@@ -477,6 +478,7 @@ Required checks:
 | `AUD-021` | High | Closed | `design.md` HUD contract; spec §11 | Mount the HUD from `BattleWorld.onLoad`; clear the viewport first in `swapWorld` | Done | Confirmed: 0/4 without the fix, 4/4 with (c8) |
 | `AUD-022` | Medium | Closed | Spec §24 edge case 20 | `swapWorld` reads `camera.world` and removes the outgoing world unconditionally | Done | Confirmed: fails without fix, 70/70 with (c8) |
 | `AUD-023` | High | Open | `PRD-FR-009`; spec §17 | Retune `tool/gen_levels.py` so levels 1–3 spawn more waves than there are lane sweeps, then regenerate | Owner (balance) | Probe: levels 1–3 idle-win, 4–20 idle-lose (c9) |
+| `AUD-024` | High | Open | `PRD-FR-010`, `PRD-FR-011`, `PRD-FR-015`; `DS-075` | Mount Pause/Win/Lose overlays before pausing the Flame engine; add a regression that does not resume the engine to flush lifecycle queues | `TASK-046` | Device reproduction on SM-S711B (c10) |
 | `AUD-018` | Low | Open | Spec §23 | Drop `clearAll()` when audio assets land | `PH-04` audio owner | Pending assets |
 | `AUD-016` | Medium | Closed | `architecture.md` §6 vs the tree | `ADR-007` — accept implemented design, drop `TASK-021` | Done | Confirmed: `ADR-007` recorded (c6) |
 | `AUD-015` | Medium | Closed | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Cursor / PH-02 | Closed 2026-09-04 — `integration_test/uj01_test.dart` green on Windows |
@@ -657,19 +659,38 @@ Required checks:
 - **Retest evidence:** Pending. The retest is the idle probe above, re-run after regeneration: levels 1–3 must read `lost`.
 - **Closure/acceptance owner:** Pending.
 
+### `AUD-024` — Pause and terminal overlays never mount on device; battle freezes on its last rendered frame
+
+- **Status:** Open — found 2026-09-07 (c10).
+- **Severity:** High — every pause, win, and loss transition strands the player on a frozen, non-interactive battle frame.
+- **Detected:** 2026-09-07 (c10), during the first full on-device run after the c8 HUD fix.
+- **Source breached:** `PRD-FR-010`, `PRD-FR-011`, `PRD-FR-015`; `DS-075`; `SCR-05`, `SCR-06`, `SCR-07`.
+- **Affected users/data/components:** `BattleWorld.pause`, `BattleWorld._finishWon`, `BattleWorld._finishLost`; Pause/Win/Lose overlays on `camera.viewport`.
+- **Evidence:** On SM-S711B, Home → Loadout → Battle worked, the full HUD rendered, a Bulb was placed, Glow orbs were collected, and waves advanced. At the level-1 terminal transition the battle froze with no Win overlay. Screenshots taken 15 seconds apart were byte-identical (`SHA-256 01CF05D6409536A5C1233940DCD265096C9A5BDA15E6F9ADB34B48F51B1FAAB6`), and tapping Pause did nothing. A clean second run reproduced the defect directly: tapping Pause during wave 1 froze the battle without mounting `PauseOverlay`. Android still reported `MainActivity` as top-resumed and the display awake; logcat contained no Flutter exception, fatal exception, or ANR.
+- **Reproduction:** Start level 1, then tap Pause while wave 1 is running. The simulation stops, but no `PAUSED` overlay appears and no control can resume it.
+- **Expected:** `DS-075` overlay mounts and remains interactive over the frozen world; Pause shows Resume/Restart/Home, Win shows VICTORY, and Lose shows DEFEAT/Try Again.
+- **Impact:** `PH-02-G1` cannot pass. A player cannot finish, retry, advance, or deliberately resume a battle.
+- **Likely cause:** Each path calls `game.pauseEngine()` before `_showOverlay(...)`. Flame queues the viewport child addition, then the paused engine never processes that queue. Tests mask the ordering bug: `_flushLifecycle` explicitly calls `game.resumeEngine()` after the production path, pumps five frames, then pauses again.
+- **Remediation task:** `TASK-046` — mount/flush the overlay before pausing the engine, covering Pause, Win, and Lose without a test-only engine resume.
+- **Owner/due:** Implementation owner, before `PH-02-G1` can close.
+- **Workaround:** Force-stop and relaunch the app; current battle progress is discarded.
+- **Retest evidence:** Pending. Reproduce on SM-S711B; overlay must render and accept its primary button while the world simulation remains frozen.
+- **Closure/acceptance owner:** Pending.
+
 ## 15. Gate decision
 
-- **Decision:** `No-go` (expected — `PH-00` exit gate is not yet met: `flutter analyze` is not clean).
-- **Scope of decision:** `PH-00` exit gate readiness.
-- **Blocking findings:** `AUD-002`, `AUD-005`, `AUD-007` remain open and block `PH-00`'s exit gate; `AUD-015` (no integration suite) blocks `PH-02`'s. `AUD-011`, `AUD-012`, `AUD-013` and `AUD-014` are closed — `flutter analyze` is clean across `lib/` and `flutter test` is 35/35 (c5).
+- **Decision:** `No-go` — `PH-02-G1` fails on hardware because `AUD-024` makes pause/win/lose overlays unreachable.
+- **Scope of decision:** `PH-02` on-device gate and v1 release readiness.
+- **Blocking findings:** `AUD-023` and `AUD-024` are open High findings; `AUD-002`, `AUD-005`, `AUD-006`, and `AUD-007` remain open below High. Analyzer and 72-test suite were green before this device run, but their overlay helpers resume the engine and mask `AUD-024`.
 - **Accepted risks:** `AUD-001`, `AUD-003`, `AUD-010` — all Low/Info, deliberate and documented substitutions.
-- **Required follow-up:** Run the app on a device and confirm a level is playable start to win/lose (the remaining `GOAL` box); then close `AUD-002`/`AUD-005`/`AUD-007` before claiming the `PH-00` exit gate.
-- **Decision owner/date:** Solo developer (repo owner), 2026-09-04.
+- **Required follow-up:** Complete `TASK-046`, negative-control its regression, then repeat `PH-02-G1` on the SM-S711B.
+- **Decision owner/date:** GameDesigner (lead), 2026-09-07 (c10).
 
 ## 16. Audit history
 
 | Date | Scope/version | Decision | Open C/H/M/L | Auditor | Notes |
 | --- | --- | --- | --- | --- | --- |
+| 2026-09-07 (c10) | `PH-02` on-device playthrough | No-go | 0/1/0/0 (new) | GameDesigner (lead) | Debug APK built, installed, and cold-launched on SM-S711B. Home → Loadout → Battle works; c8 HUD fix is confirmed on hardware and ADB taps place/collect. Found `AUD-024`: Pause/Win/Lose call `pauseEngine()` before queuing their overlay, leaving a frozen frame with no dialog. `PH-02-G2` closes; `PH-02-G1` remains blocked. |
 | 2026-09-03 | Baseline (pre-`PH-00`) | No-go | 0/1/4/2 | Claude Sonnet 5 | First audit. Found the working tree already contains partial, uncommitted, unverified game code beyond what this audit was briefed to expect — see `AUD-008`. Most urgent finding is `AUD-009` (uncommitted work, High). |
 | 2026-09-03 (c2) | `PH-00` in progress | No-go | 0/0/2/1 | Claude Sonnet 5 (planner) | `AUD-008`/`AUD-009` closed (fixed/committed). `flutter analyze` now shows 49 errors from newer code — root-caused to one file (`AUD-011`, assigned this cycle) plus a small remainder (`AUD-012`, next cycle). |
 | 2026-09-04 (c3) | `PH-00` in progress | No-go | 0/0/2/2 | Claude Sonnet 5 (planner) | Cursor tried c2's 1-file `AUD-011` fix, returned `IMPLEMENTATION_BLOCKED` (2 consumer files also need edits). Planner traced every consumer, verified a 3-file fix locally (56→34 issues, reverted before handoff), reassigned to Cursor. Surfaced a new pre-existing defect (`AUD-013`, `const Vector2` has no const constructor) while verifying — it accounts for the gap between the c2 assignment's optimistic ≤12 target and the real 34. |
