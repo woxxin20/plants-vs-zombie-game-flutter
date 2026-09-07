@@ -775,28 +775,33 @@ release requirement and give every requirement testable acceptance criteria.
 
 ### Requirement index
 
+Status vocabulary (defined in [`prd-story.md`](./prd-story.md) §8):
+`Proposed` written, not built · `Built` code exists, no test proves it ·
+`Tested` covered by a test known to fail without the feature ·
+`Verified` confirmed on real hardware · `Deferred` descoped for this release.
+
 | ID | Title | Priority | Journey | Release | Status |
 | --- | --- | --- | --- | --- | --- |
-| `PRD-FR-001` | Tool placement validation | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-002` | Glow economy | Must | `UJ-01`, `UJ-03` | MVP | Proposed |
-| `PRD-FR-003` | Beam optics: Mirror 90° reflection | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-004` | Beam optics: Prism 3-way split | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-005` | Beam trace depth limit and loop prevention | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-006` | Shadow movement, eating, and special behaviors | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-007` | Wave system: scheduled spawns and flag waves | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-008` | Wave pacing: the 50% rule | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-009` | Sweep (lawnmower) | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-010` | Win condition | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-011` | Lose condition | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-012` | Stars and coins reward | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-013` | Level unlock and progression persistence | Must | `UJ-02` | MVP | Proposed |
-| `PRD-FR-014` | Loadout: scout preview and 6-of-8 tool pick | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-015` | App lifecycle: pause on background, rotation, and back | Must | `UJ-02` | MVP | Proposed |
-| `PRD-FR-016` | Ads: banner and interstitial | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-017` | Rewarded Glow boost, capped once per battle | Must | `UJ-03` | MVP | Proposed |
-| `PRD-FR-018` | IAP Remove Ads | Must | `UJ-01` | MVP | Proposed |
-| `PRD-FR-019` | Settings: sound, haptics, reset progress | Must | `UJ-02` | MVP | Proposed |
-| `PRD-FR-020` | Landscape orientation lock | Must | `UJ-01` | MVP | Proposed |
+| `PRD-FR-001` | Tool placement validation | Must | `UJ-01` | MVP | Tested |
+| `PRD-FR-002` | Glow economy | Must | `UJ-01`, `UJ-03` | MVP | Tested |
+| `PRD-FR-003` | Beam optics: Mirror 90° reflection | Must | `UJ-01` | MVP | Tested |
+| `PRD-FR-004` | Beam optics: Prism 3-way split | Must | `UJ-01` | MVP | Tested |
+| `PRD-FR-005` | Beam trace depth limit and loop prevention | Must | `UJ-01` | MVP | Tested |
+| `PRD-FR-006` | Shadow movement, eating, and special behaviors | Must | `UJ-01` | MVP | Built |
+| `PRD-FR-007` | Wave system: scheduled spawns and flag waves | Must | `UJ-01` | MVP | Tested |
+| `PRD-FR-008` | Wave pacing: the 50% rule | Must | `UJ-01` | MVP | Tested |
+| `PRD-FR-009` | Sweep (lawnmower) | Must | `UJ-01` | MVP | Built |
+| `PRD-FR-010` | Win condition | Must | `UJ-01` | MVP | Tested |
+| `PRD-FR-011` | Lose condition | Must | `UJ-01` | MVP | Tested |
+| `PRD-FR-012` | Stars and coins reward | Must | `UJ-01` | MVP | Tested |
+| `PRD-FR-013` | Level unlock and progression persistence | Must | `UJ-02` | MVP | Tested |
+| `PRD-FR-014` | Loadout: scout preview and 6-of-8 tool pick | Must | `UJ-01` | MVP | Tested |
+| `PRD-FR-015` | App lifecycle: pause on background, rotation, and back | Must | `UJ-02` | MVP | Tested |
+| `PRD-FR-016` | Ads: banner and interstitial | Must | `UJ-01` | MVP | Deferred |
+| `PRD-FR-017` | Rewarded Glow boost, capped once per battle | Must | `UJ-03` | MVP | Deferred |
+| `PRD-FR-018` | IAP Remove Ads | Must | `UJ-01` | MVP | Deferred |
+| `PRD-FR-019` | Settings: sound, haptics, reset progress | Must | `UJ-02` | MVP | Tested |
+| `PRD-FR-020` | Landscape orientation lock | Must | `UJ-01` | MVP | Verified |
 
 Allowed status: `Proposed`, `Approved`, `Deprecated`. Implementation status
 belongs in `implementation_plan.md`, not here.

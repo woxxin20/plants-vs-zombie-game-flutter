@@ -22,6 +22,7 @@ first, and record the drift in `docs/audit.md`.
 | The agent operating contract — how to work here at all | [`AGENTS.md`](./AGENTS.md) | `CLAUDE.md`, `AGENT.md` (both are redirects) |
 | What to do next, right now, in this session | [`STATE.md`](./STATE.md) (rules: [`.ai/STATE-PROTOCOL.md`](./.ai/STATE-PROTOCOL.md)) | `docs/memory.md` for the single next action |
 | What the product must do — scope, requirements, acceptance | [`docs/prd.md`](./docs/prd.md) (`PRD-FR-*`, `PRD-NFR-*`) | the game spec, which is source material, not the contract |
+| The whole arc — where the game stands and the ordered path to v1 | [`docs/prd-story.md`](./docs/prd-story.md) | it owns no truth of its own; on conflict its cited owner wins |
 | How the system is built — boundaries, decisions | [`docs/architecture.md`](./docs/architecture.md) (`ADR-*`) | code comments |
 | Hard constraints — forbidden packages, budgets, testing policy | [`docs/rules.md`](./docs/rules.md) (`RULE-*`) | `pubspec.yaml` alone |
 | The experience contract — tokens, layout, motion, copy | [`docs/design.md`](./docs/design.md) (`DS-*`) | one-off values in components |
