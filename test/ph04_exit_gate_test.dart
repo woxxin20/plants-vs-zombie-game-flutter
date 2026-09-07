@@ -1,7 +1,8 @@
 /// PH-04 exit-gate suite — juice code-half (`docs/phases.md` §8).
 ///
-/// Audio asset preload is human-blocked (`assets/audio/` empty); triggers are
-/// wired but inert. Stars/coins §19 already covered in `rules_test.dart`.
+/// Audio assets now ship, but this suite only checks they exist on disk: no test
+/// host has the audio plugin, so `GameAudio._ready` is always false here and the
+/// preload/volume paths stay unexercised. Stars/coins §19 is in `rules_test.dart`.
 library;
 
 import 'dart:io';
@@ -172,18 +173,29 @@ void main() {
     });
   });
 
-  group('PH-04 audio assets (blocked)', () {
-    test('assets/audio is empty — preload gated, Sfx list documented', () {
+  group('PH-04 audio assets (shipped)', () {
+    test('assets/audio is populated — all Sfx files exist on disk', () {
       final dir = Directory('assets/audio');
-      final mp3 = dir.existsSync()
-          ? dir
-                .listSync()
-                .whereType<File>()
-                .where((f) => f.path.endsWith('.mp3'))
-                .toList()
-          : <File>[];
-      expect(mp3, isEmpty, reason: 'human-blocked: no audio files shipped');
-      expect(Sfx.all, hasLength(8));
+      expect(dir.existsSync(), isTrue);
+      final mp3 = dir
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.mp3'))
+          .toList();
+      expect(mp3.length, greaterThanOrEqualTo(8));
+      for (final sfxFile in Sfx.all) {
+        final f = File('assets/audio/$sfxFile');
+        expect(
+          f.existsSync(),
+          isTrue,
+          reason: '$sfxFile must exist in assets/audio',
+        );
+        expect(
+          f.lengthSync(),
+          greaterThan(0),
+          reason: '$sfxFile must not be empty',
+        );
+      }
     });
   });
 }

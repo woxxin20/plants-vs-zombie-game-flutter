@@ -39,12 +39,50 @@ const _specTools = <String, ({int cost, double cooldown, int hp, int dmg})>{
 /// `id == 'fog'` expression compares an expression with itself and passes no
 /// matter what the production code says (`T-1`).
 const _specShadows =
-    <String, ({int hp, double speed, double eat, bool resists, bool jumps, bool imp})>{
-      'basic': (hp: 100, speed: 12, eat: 20, resists: false, jumps: false, imp: false),
-      'bucket': (hp: 250, speed: 12, eat: 20, resists: false, jumps: false, imp: false),
-      'jumper': (hp: 120, speed: 14, eat: 20, resists: false, jumps: true, imp: false),
-      'fog': (hp: 150, speed: 10, eat: 20, resists: true, jumps: false, imp: false),
-      'giant': (hp: 600, speed: 8, eat: 40, resists: false, jumps: false, imp: true),
+    <
+      String,
+      ({int hp, double speed, double eat, bool resists, bool jumps, bool imp})
+    >{
+      'basic': (
+        hp: 100,
+        speed: 12,
+        eat: 20,
+        resists: false,
+        jumps: false,
+        imp: false,
+      ),
+      'bucket': (
+        hp: 250,
+        speed: 12,
+        eat: 20,
+        resists: false,
+        jumps: false,
+        imp: false,
+      ),
+      'jumper': (
+        hp: 120,
+        speed: 14,
+        eat: 20,
+        resists: false,
+        jumps: true,
+        imp: false,
+      ),
+      'fog': (
+        hp: 150,
+        speed: 10,
+        eat: 20,
+        resists: true,
+        jumps: false,
+        imp: false,
+      ),
+      'giant': (
+        hp: 600,
+        speed: 8,
+        eat: 40,
+        resists: false,
+        jumps: false,
+        imp: true,
+      ),
     };
 
 Future<void> _pumpFrames(WidgetTester tester, [int n = 5]) async {

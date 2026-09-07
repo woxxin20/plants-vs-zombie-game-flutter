@@ -138,9 +138,7 @@ void main() {
     await Content.load();
   });
 
-  testWidgets('level 1 is winnable by playing it — no forced state', (
-    t,
-  ) async {
+  testWidgets('level 1 is winnable by playing it — no forced state', (t) async {
     t.view.physicalSize = _screen;
     t.view.devicePixelRatio = 1.0;
     addTearDown(t.view.reset);
