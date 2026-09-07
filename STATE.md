@@ -3,11 +3,11 @@
 <!-- AGENT-OWNED. Whole-file rewrite only, never patched.
      Humans edit HUMAN NOTES only. Rules: .ai/STATE-PROTOCOL.md -->
 
-CYCLE:   10 (closed)
-UPDATED: 2026-09-07T13:49+05:30
+CYCLE:   11 (closed)
+UPDATED: 2026-09-07T14:14+05:30
 BY:      lead:codex
 BRANCH:  main
-COMMIT:  9e86efd
+COMMIT:  da834c7
 STATUS:  BLOCKED
 
 ## NEXT ACTION
@@ -28,13 +28,13 @@ Done when:
 - [x] pure rules (optics, placement, waves, scoring) written and unit-tested
 - [x] `flutter analyze` clean across lib/
 - [ ] a level is playable start to win/lose on a device
-      (c10 reached terminal transition, but AUD-024 hid every terminal overlay)
+      (c11 reconfirmed AUD-024 after independent cold starts)
 
 ## BROKEN NOW
-- AUD-024 (High, open): Pause, Win, and Lose call `pauseEngine()` before
-  `_showOverlay`. Flame never flushes the queued viewport child, leaving a
-  frozen, input-dead battle frame. The tests mask it by resuming the engine in
-  `_flushLifecycle`. Reproduced twice on SM-S711B with no crash/ANR.
+- AUD-024 (High, open, deterministic): Pause, Win, and Lose call
+  `pauseEngine()` before `_showOverlay`. Flame never flushes the queued viewport
+  child, leaving a frozen battle frame. Two c11 cold starts reproduced Pause
+  and terminal failure; delayed screenshots were byte-identical, logcat clean.
 - AUD-023 (High, open): levels 1–3 are WON by doing nothing. One sweep clears
   a whole lane and three free sweeps absorb every 3-wave early level.
 - Reproduce AUD-024: launch level 1 and tap Pause during wave 1; no `PAUSED`
@@ -51,7 +51,7 @@ Done when:
 - google_mobile_ads + in_app_purchase are commented out in pubspec: 6.0.0 breaks Gradle 9.3.1 and blocked the entire Android build. Restore lib/core/monetization.dart from git when monetization resumes.
 
 ## NEEDS HUMAN
-- [ ] Approve implementation of `TASK-046`; c10 was requested as testing only.
+- [ ] Approve implementation of `TASK-046`; c10–c11 were requested as testing only.
 - [ ] AUD-023: how hard should levels 1–3 be? Fixing it means retuning
       tool/gen_levels.py and regenerating all 20 levels — a balance call.
 - [ ] Native bundle id + app label, still `plants_vs_zombie` and visible on the device home screen (ARCH-Q-003).
@@ -75,8 +75,8 @@ Done when:
 (free text — agent copies this block through byte-for-byte)
 
 ## LOG
-- 2026-09-07 | c10 | Debug APK built/installed/cold-launched on SM-S711B. Home→Loadout→Battle, HUD, placement, Glow and waves work. Found AUD-024: Pause/Win/Lose freeze before overlays mount; tests hide it with resumeEngine. PH-02-G2 done, G1 blocked. Added TASK-046.
+- 2026-09-07 | c11 | Force-stop/cold-start twice. Pause froze without overlay; idle level 1 froze at terminal without Win. Delayed frames byte-identical, activity foreground/awake, device connected, logcat clean. AUD-024 deterministic; restart only escapes current stuck battle.
+- 2026-09-07 | c10 | Debug APK built/installed/cold-launched on SM-S711B. Home→Loadout→Battle, HUD, placement, Glow and waves work. Found AUD-024: Pause/Win/Lose freeze before overlays mount. PH-02-G2 done, G1 blocked. Added TASK-046.
 - 2026-09-07 | c9 | First tests that PLAY a level: level 1 won with all sweeps unspent, level 4 lost idle. Negative-controlled. Closed T-1/T-2. Found AUD-023. PRD-FR-006/009 Built→Tested. 72/72, analyze clean.
-- 2026-09-07 | c8 | Root-caused AUD-021: HUD was never wired to BattleWorld. Wired TopBar + RightPanel onto camera.viewport; closed AUD-022. Negative control 0/4→4/4. 70/70.
+- 2026-09-07 | c8 | Root-caused AUD-021: HUD was never wired to BattleWorld. Wired HUD onto camera.viewport; closed AUD-022. Negative control 0/4→4/4. 70/70.
 - 2026-09-04 | c7 | First device run: fixed Android build, AUD-019 (Navigator swallowed every tap), and AUD-020 (loadout unreachable). 66/66.
-- 2026-09-04 | c6 | Filled AGENTS.md §6, rewrote README ownership map, reconciled PH-00/PH-01, recorded ADR-007, delivered PH-01..PH-04, found AUD-017.
