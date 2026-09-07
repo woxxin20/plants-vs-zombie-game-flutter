@@ -33,14 +33,19 @@ const _specTools = <String, ({int cost, double cooldown, int hp, int dmg})>{
   'twin': (cost: 125, cooldown: 15, hp: 100, dmg: 0),
 };
 
-/// Spec §7 table — HP/speed/eat; specials are id-derived.
-const _specShadows = <String, ({int hp, double speed, double eat})>{
-  'basic': (hp: 100, speed: 12, eat: 20),
-  'bucket': (hp: 250, speed: 12, eat: 20),
-  'jumper': (hp: 120, speed: 14, eat: 20),
-  'fog': (hp: 150, speed: 10, eat: 20),
-  'giant': (hp: 600, speed: 8, eat: 40),
-};
+/// Spec §7 table — HP/speed/eat, plus the three specials transcribed from the
+/// spec as literal booleans. They are literals on purpose: `ShadowDef`'s
+/// specials are id-derived (`id == 'fog'`), so asserting them against the same
+/// `id == 'fog'` expression compares an expression with itself and passes no
+/// matter what the production code says (`T-1`).
+const _specShadows =
+    <String, ({int hp, double speed, double eat, bool resists, bool jumps, bool imp})>{
+      'basic': (hp: 100, speed: 12, eat: 20, resists: false, jumps: false, imp: false),
+      'bucket': (hp: 250, speed: 12, eat: 20, resists: false, jumps: false, imp: false),
+      'jumper': (hp: 120, speed: 14, eat: 20, resists: false, jumps: true, imp: false),
+      'fog': (hp: 150, speed: 10, eat: 20, resists: true, jumps: false, imp: false),
+      'giant': (hp: 600, speed: 8, eat: 40, resists: false, jumps: false, imp: true),
+    };
 
 Future<void> _pumpFrames(WidgetTester tester, [int n = 5]) async {
   for (var i = 0; i < n; i++) {
@@ -163,10 +168,11 @@ void main() {
         expect(loaded.speed, expected.speed);
         expect(loaded.eat, expected.eat);
 
-        // Specials are id-derived (no JSON field) — assert the §7 contract.
-        expect(loaded.resistsBeam, id == 'fog', reason: '$id veil');
-        expect(loaded.jumpsWalls, id == 'jumper', reason: '$id leaper');
-        expect(loaded.throwsImp, id == 'giant', reason: '$id colossus');
+        // Specials are id-derived (no JSON field) — assert against the spec
+        // table's literals, never against the getter's own expression.
+        expect(loaded.resistsBeam, expected.resists, reason: '$id veil');
+        expect(loaded.jumpsWalls, expected.jumps, reason: '$id leaper');
+        expect(loaded.throwsImp, expected.imp, reason: '$id colossus');
       }
     });
   });

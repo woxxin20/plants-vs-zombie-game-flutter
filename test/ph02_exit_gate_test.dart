@@ -164,6 +164,11 @@ void main() {
       (tester) async {
         final (:game, :world) = await _mountBattle(tester);
 
+        // Forced position on purpose: this asserts the overlay fires for a won
+        // board. That a won board is *reachable by playing* is a different
+        // claim, and it is asserted in test/battle_playthrough_test.dart
+        // (`T-2`) — a guard test without its reachability pair is how
+        // `AUD-020` survived a green suite.
         world.waveIndex = world.level.waves.length;
         world.time = 1;
         expect(world.shadows, isEmpty);

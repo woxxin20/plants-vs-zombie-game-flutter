@@ -787,10 +787,10 @@ Status vocabulary (defined in [`prd-story.md`](./prd-story.md) §8):
 | `PRD-FR-003` | Beam optics: Mirror 90° reflection | Must | `UJ-01` | MVP | Tested |
 | `PRD-FR-004` | Beam optics: Prism 3-way split | Must | `UJ-01` | MVP | Tested |
 | `PRD-FR-005` | Beam trace depth limit and loop prevention | Must | `UJ-01` | MVP | Tested |
-| `PRD-FR-006` | Shadow movement, eating, and special behaviors | Must | `UJ-01` | MVP | Built |
+| `PRD-FR-006` | Shadow movement, eating, and special behaviors | Must | `UJ-01` | MVP | Tested |
 | `PRD-FR-007` | Wave system: scheduled spawns and flag waves | Must | `UJ-01` | MVP | Tested |
 | `PRD-FR-008` | Wave pacing: the 50% rule | Must | `UJ-01` | MVP | Tested |
-| `PRD-FR-009` | Sweep (lawnmower) | Must | `UJ-01` | MVP | Built |
+| `PRD-FR-009` | Sweep (lawnmower) | Must | `UJ-01` | MVP | Tested |
 | `PRD-FR-010` | Win condition | Must | `UJ-01` | MVP | Tested |
 | `PRD-FR-011` | Lose condition | Must | `UJ-01` | MVP | Tested |
 | `PRD-FR-012` | Stars and coins reward | Must | `UJ-01` | MVP | Tested |
@@ -803,8 +803,10 @@ Status vocabulary (defined in [`prd-story.md`](./prd-story.md) §8):
 | `PRD-FR-019` | Settings: sound, haptics, reset progress | Must | `UJ-02` | MVP | Tested |
 | `PRD-FR-020` | Landscape orientation lock | Must | `UJ-01` | MVP | Verified |
 
-Allowed status: `Proposed`, `Approved`, `Deprecated`. Implementation status
-belongs in `implementation_plan.md`, not here.
+The Status column tracks build/verification progress against the vocabulary
+above; it is not the requirement's approval state. Every requirement listed
+here is approved — a withdrawn one is marked `Deferred` and says so in its
+own section. Phase and task sequencing stays in `implementation_plan.md`.
 
 ## 7. Non-functional requirements
 

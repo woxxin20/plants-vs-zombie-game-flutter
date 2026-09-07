@@ -66,14 +66,14 @@ repurposed, not extended; the old widget game is gone (history before `ae7a5b6`)
 Two numbers, because they are very different:
 
 - **Build-up (code written): ~85%**
-- **Test-1 (verified working): ~30%**
+- **Test-1 (verified working): ~40%**
 
 | Dimension | % | Evidence |
 | --- | --- | --- |
 | Code written | 90 | 8 tools, all shadow types, optics, waves, economy, 20 level JSONs, 6 worlds, full HUD |
-| Verified by tests | 60 | 70 tests, `flutter analyze` clean. Pure rules strong, integration thin |
+| Verified by tests | 75 | 72 tests, `flutter analyze` clean. A level is now played to a win, and to a loss, with no forced state (c9) |
 | Verified on hardware | 15 | Launched once, navigated, battle grid loaded. Never played |
-| **A level played start → win/lose** | **0** | **Has never happened. Not by a human, not by a test.** |
+| **A level played start → win/lose** | **50** | **In the suite, yes (c9). By a human on a device, still never.** |
 | Ship-ready | 10 | No audio, no bundled font, wrong app id, no keystore |
 
 ### Phase gates
@@ -83,7 +83,7 @@ Two numbers, because they are very different:
 | `PH-07` governance bootstrap | 100 | Complete |
 | `PH-00` engine bootstrap | 70 | 4/6 — device + fps items unrun |
 | `PH-01` grid, glow economy, HUD shell | 85 | 6/7 |
-| `PH-02` combat core | 75 | 6/7 — on-device playthrough unrun |
+| `PH-02` combat core | 85 | 6/7 — played to win and to loss in-suite (c9); on-device playthrough still unrun |
 | `PH-03` full content | 100 | 5/5, data-driven against the JSON |
 | `PH-04` juice | 80 | 4/5 — audio blocked, `assets/audio/` is empty |
 | `PH-05` monetization + polish | 20 | Ads/IAP descoped by owner; 60fps never profiled |
@@ -153,17 +153,19 @@ In order. Each step names its exit criterion. Nothing below is optional for v1.
 | --- | --- | --- |
 | `PH-02-G1` | Device playthrough | On the SM-S711B: PLAY → START BATTLE → HUD renders → place a tool → a shadow dies → reach win **or** lose. One human, one level, end to end. |
 | `PH-02-G2` | Confirm the c8 HUD fix on hardware | The glow chip, wave counter, pause button and tray are visible and respond |
-| `PH-02-G3` | A test that actually plays | Drive `BattleWorld.update` for real elapsed time until win, with no forced state. Replaces the forced-win assertions |
+| `PH-02-G3` | ✅ **Done (c9)** — `test/battle_playthrough_test.dart` | Plays level 1 to a win with every lane sweep unspent, and lets level 4 run to a loss. Negative-controlled: fails when Beam damage is zeroed |
 
 Until `PH-02-G1` passes, the honest answer to "does the game work?" is
-**unknown**, regardless of the test count.
+**unknown**, regardless of the test count. `PH-02-G3` narrowed it: the
+simulation can be played to both terminal states. It says nothing about whether
+a finger on glass can do the same.
 
 ### Step 2 — Close the test-quality debt
 
 | ID | Work | Exit criterion |
 | --- | --- | --- |
-| `T-1` | Replace the 3 tautologies at `ph03_exit_gate_test.dart:167-169` | Assertions compare against level JSON, not against the getter's own expression |
-| `T-2` | Reachability pass over every gate test | For each "X is blocked" assertion there is a matching "the valid case is reachable" |
+| `T-1` | ✅ **Done (c9)** | The three shadow specials are now literals in the spec §7 table. Negative-controlled: forcing `resistsBeam` to `false` now fails |
+| `T-2` | ✅ **Done (c9)** | Swept every negative assertion in `test/`. Loadout, shop and rules already had positive pairs; the forced win/loss in `ph02_exit_gate_test.dart:167` did not, and now points at its reachability pair |
 
 ### Step 3 — Make it a game, not a simulation (`PH-04`)
 
@@ -185,10 +187,12 @@ Until `PH-02-G1` passes, the honest answer to "does the game work?" is
 
 Not yet started, and not yet possible: nobody has played the game, so nobody
 knows whether 20 levels are fun, whether the Glow curve works, or whether the
-difficulty ramp is sane. **This step cannot begin before `PH-02-G1`.**
+difficulty ramp is sane. **This step cannot begin before `PH-02-G1`** — except `B-0`, which c9 found
+without a device and which is a content bug, not a taste call.
 
 | ID | Work | Exit criterion |
 | --- | --- | --- |
+| `B-0` | Fix `AUD-023` — levels 1–3 are won by doing nothing | An idle run of levels 1–3 ends `lost`. Found c9: one sweep per lane clears an entire lane, and a 3-wave level never presents more than three lane-arrivals |
 | `B-1` | Play all 20 levels | Each is completable; note which are trivial or impossible |
 | `B-2` | Retune `tool/gen_levels.py` and regenerate | Difficulty ramps monotonically. Regenerate — never hand-edit `assets/levels/*.json` |
 
@@ -221,7 +225,7 @@ v1 ships when every line is true. Not before.
 
 - [ ] A human plays level 1 start to win **and** start to lose, on hardware
 - [ ] All 20 levels are completable, verified by playing them
-- [ ] A test plays a level to a win without forcing state
+- [x] A test plays a level to a win without forcing state (c9)
 - [ ] `flutter analyze` clean, `flutter test` green, `flutter test integration_test` green
 - [ ] 60fps sustained on low-end 720p Android, profiled (`PRD-NFR-001`)
 - [ ] Save survives a force-kill with zero loss (`PRD-NFR-002`)
@@ -276,3 +280,4 @@ it is the single fact this whole document exists to make unavoidable.
 | Date | Change |
 | --- | --- |
 | 2026-09-07 (c8) | Created. Consolidates the arc c1→c8, the verified-vs-written scorecard, and the ordered path to v1. |
+| 2026-09-07 (c9) | `PH-02-G3`, `T-1`, `T-2` closed. Scorecard moved test-1 30% → 40%. New `AUD-023` (levels 1–3 win themselves) entered as `B-0`. `PRD-FR-006` and `PRD-FR-009` promoted `Built` → `Tested`. |
