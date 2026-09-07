@@ -171,6 +171,9 @@ section becomes meaningful starting at `PH-00`'s exit gate (empty-scene
 | 2026-09-04 (c6) | `flutter analyze` | Local Windows, `HEAD` `9cc0c49` | Pass — `No issues found!` | Re-run by the lead, not taken from the worker's report | None |
 | 2026-09-04 (c7) | `flutter build apk --debug` + install + launch | **SM-S711B, Android 16 (API 36), real hardware** | Pass — launches, forces `ROTATION_90` from portrait with auto-rotate on, no Dart exception in logcat | First time this project has ever run on a device. Android build was **broken** until `google_mobile_ads` was deferred | `AUD-019`, `AUD-020`, `AUD-021` all found here |
 | 2026-09-04 (c7) | `flutter test` | Local Windows, `HEAD` `256e995`+ | Pass — 66/66 | Re-run by the lead | `AUD-019`/`AUD-020` regressions |
+| 2026-09-07 (c8) | `flutter test test/battle_hud_test.dart` | Local Windows, `lib/` stashed to `3bc5171` | **Fail — 0/4**, behavioural (file compiles) | Deliberate negative control: a regression test that has never failed proves nothing | `AUD-021`, `AUD-022` |
+| 2026-09-07 (c8) | `flutter analyze` + `flutter test` | Local Windows, HUD wired | Pass — `No issues found!`, 70/70 | 66 existing + 4 new | `AUD-021`, `AUD-022` closed |
+| 2026-09-07 (c8) | Device run | — | **Not run** — no device attached | `AUD-021`'s on-device re-confirmation is still outstanding | Tracked in `STATE.md` |
 | 2026-09-04 (c6) | `flutter test` | Local Windows, `HEAD` `9cc0c49` | Pass — 42/42 (+7 `PH-01` gate tests) | Re-run by the lead; diff verified test-only (1 file, +285 lines, zero production change) | `PH-01` gate 6/7, gate 3 partial |
 | 2026-09-03 | `flutter --version` | Local Windows | Pass — 3.47.0 stable | Briefed baseline, not re-run this pass | None |
 | 2026-09-03 | `flutter pub get` | Local Windows, rewritten `pubspec.yaml` | Pass — resolved `flame 1.38.2`, `flame_audio 2.12.2`, `flame_riverpod 5.4.21`, `flutter_riverpod 2.6.1`, `go_router 16.3.0`, `hive_ce_flutter 2.3.4`, `google_mobile_ads 6.0.0`, `in_app_purchase 3.3.0` (per brief) | Briefed baseline, not re-run this pass | None |
@@ -467,7 +470,8 @@ Required checks:
 | `AUD-017` | Medium | Closed | `PRD-FR-015`; QA #10 | Read `camera.world` (`ed0c0f9`) + regression test (`d39b6b0`) | Done | Confirmed: fails without fix, 62/62 with (c6) |
 | `AUD-019` | Critical | Closed | Every interaction in the product | `IgnorePointer` around go_router's routed child (`256e995`) | Done | Confirmed on device + 3 shell tests (c7) |
 | `AUD-020` | Critical | Closed | `PRD-FR-014` vs shipped level 1 | `ADR-008` — cap tray at what the level offers | Done | Confirmed on device, 66/66 (c7) |
-| `AUD-021` | High | Open | `design.md` HUD contract; spec §11 | Diagnose `swapWorld` viewport clear vs async `onLoad` | Claude (lead) / next cycle | Pending |
+| `AUD-021` | High | Closed | `design.md` HUD contract; spec §11 | Mount the HUD from `BattleWorld.onLoad`; clear the viewport first in `swapWorld` | Done | Confirmed: 0/4 without the fix, 4/4 with (c8) |
+| `AUD-022` | Medium | Closed | Spec §24 edge case 20 | `swapWorld` reads `camera.world` and removes the outgoing world unconditionally | Done | Confirmed: fails without fix, 70/70 with (c8) |
 | `AUD-018` | Low | Open | Spec §23 | Drop `clearAll()` when audio assets land | `PH-04` audio owner | Pending assets |
 | `AUD-016` | Medium | Closed | `architecture.md` §6 vs the tree | `ADR-007` — accept implemented design, drop `TASK-021` | Done | Confirmed: `ADR-007` recorded (c6) |
 | `AUD-015` | Medium | Closed | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Cursor / PH-02 | Closed 2026-09-04 — `integration_test/uj01_test.dart` green on Windows |
@@ -589,23 +593,40 @@ Required checks:
 - **Retest evidence:** `test/app_navigation_test.dart` drives a fresh save through PLAY, selects every offered tool and asserts Start Battle enables. 66/66. Confirmed on device: the battle grid now loads.
 - **Closure/acceptance owner:** Repo owner, 2026-09-04 (c7).
 
-### `AUD-021` — Battle HUD does not appear when the battle is entered on device
+### `AUD-021` — The battle HUD was never wired to `BattleWorld`; every battle had no HUD at all
 
-- **Status:** Open — observed, not yet diagnosed.
+- **Status:** Closed — fixed 2026-09-07 (c8).
 - **Severity:** High
-- **Detected:** 2026-09-04 (c7), on the SM-S711B, immediately after `AUD-020` made a battle reachable for the first time.
+- **Detected:** 2026-09-04 (c7), on the SM-S711B, immediately after `AUD-020` made a battle reachable for the first time. Root-caused 2026-09-07 (c8).
 - **Source breached:** `docs/design.md` `DS-*` HUD contract; spec §11.
-- **Affected users/data/components:** `BattleWorld`, `TopBarComponent`, `RightPanelComponent`, the tool tray; `LightVsShadowGame.swapWorld`.
-- **Evidence:** Device screenshot after Start Battle shows the 21-tile grid and the lane sweep arrows rendering correctly, with **no** top bar, glow chip, wave counter, pause button, right panel or tool tray.
-- **Reproduction:** On device at `256e995`: PLAY → select the three tools → Start Battle. Grid appears, HUD does not.
-- **Expected:** The HUD mounts on `camera.viewport` with the battle.
-- **Impact:** A battle cannot be played — there is no glow readout and no tray to place tools from. Blocks `PH-02`'s on-device playthrough gate item.
-- **Likely cause:** Unconfirmed. Prime suspect is `LightVsShadowGame.swapWorld`, which clears `camera.viewport` (`removeAll`) as its last step while the incoming world's `onLoad` — which is what adds the HUD — runs asynchronously afterwards; ordering between the two is not guaranteed. `swapWorld` also still reads `final previous = world`, the same `game.world`-vs-`camera.world` confusion as `AUD-017`, so the outgoing world is never actually removed after the first swap and worlds accumulate.
-- **Remediation task:** Next session — first action in `STATE.md`.
-- **Owner/due:** Claude (lead), next cycle.
+- **Affected users/data/components:** `lib/game/worlds/battle_world.dart`; `TopBarComponent`, `RightPanelComponent`, `TraySlotComponent`, `ToastComponent`.
+- **Evidence:** Device screenshot after Start Battle showed the 21-tile grid and the lane sweep arrows rendering correctly, with **no** top bar, glow chip, wave counter, pause button, right panel or tool tray. Static confirmation across `lib/`: `TopBarComponent`, `RightPanelComponent` and `ToastComponent` had **zero constructor call sites**; `TraySlotComponent`'s only call site was inside `RightPanelComponent`, which was itself never built; `BattleWorld`'s `onGlowChanged`/`onWaveChanged`/`onToast` hooks (`battle_world.dart:86-88`) were **never assigned**, so `onLoad` invoked them into null; the only component ever added to `camera.viewport` was a win/lose/pause overlay (`battle_world.dart:613`).
+- **Reproduction:** On device at `256e995`: PLAY → select the three tools → Start Battle. Grid appears, HUD does not. In-suite: `flutter test test/battle_hud_test.dart` against `3bc5171` — 0 of 4 pass.
+- **Expected:** The HUD mounts on `camera.viewport` with the battle and is driven by the simulation.
+- **Impact:** A battle could not be played — no glow readout and no tray to place tools from. Third critical-path defect in two sessions that the suite could not see.
+- **Actual cause:** The HUD was written, styled and unit-tested but **never connected to production code**. The cause recorded in c7 — a race between `swapWorld`'s `camera.viewport.removeAll` and an async HUD `onLoad` — was **wrong**: there was no HUD add to race against. That mis-diagnosis was carried in `STATE.md`'s NEXT ACTION and would have sent the next session hunting a timing bug that did not exist. Recorded here because a confident wrong root cause is more expensive than an open unknown.
+- **Remediation task:** `BattleWorld._mountHud()` builds the TopBar and RightPanel and adds them to `camera.viewport`; `_syncHud()` pushes glow, wave, tray selection, affordability and cooldown into them once per frame, one direction only. `swapWorld` now clears the viewport **first**, so the ordering hazard that was mistaken for the cause cannot arise either. Rejected toasts now also render at the tapped tile via `showToast`.
+- **Owner/due:** Claude (lead), done 2026-09-07.
 - **Workaround:** None.
-- **Retest evidence:** Pending.
-- **Closure/acceptance owner:** Pending.
+- **Retest evidence:** `test/battle_hud_test.dart` drives the real shell Home → Loadout → Battle and asserts on `camera.viewport`, not on any test-only getter — so the file compiles against the pre-fix tree and fails behaviourally: **0/4 before the fix, 4/4 after**. Full suite 70/70, `flutter analyze` clean. **Not yet re-confirmed on a device** — no device was attached in c8.
+- **Closure/acceptance owner:** Claude (lead), 2026-09-07 (c8).
+
+### `AUD-022` — `swapWorld` read `FlameGame.world`, so outgoing worlds were never removed and accumulated
+
+- **Status:** Closed — fixed 2026-09-07 (c8).
+- **Severity:** Medium
+- **Detected:** 2026-09-07 (c8), while fixing `AUD-021`. Suspected in c7 and recorded then as a possible cause of `AUD-021`; it is a separate defect.
+- **Source breached:** Spec §24 edge case 20 — a replaced screen's particle generators must stop ticking.
+- **Affected users/data/components:** `lib/game/light_vs_shadow_game.dart`; every navigation in the game.
+- **Evidence:** `swapWorld` opened with `final previous = world`. `FlameGame.world` is a separate reference from `camera.world`, and the method only ever assigns `camera.world` — so `world` stayed the default `World` for the life of the game. From the second navigation onward `previous.isMounted` was false, `removeFromParent()` was skipped, and the world the player had just left stayed mounted and updating. The same `isMounted` guard also leaked FlameGame's own default `World`, which is still only queued at the first swap.
+- **Reproduction:** `flutter test test/battle_hud_test.dart` against `3bc5171` — navigating Home ⇄ Map three times leaves 2+ worlds mounted.
+- **Expected:** Exactly one world is mounted at any time.
+- **Impact:** Dead worlds kept ticking behind the live one: wasted frame budget against the 60fps `PRD-NFR` target, and a latent correctness hazard wherever a stale world holds timers. Same root confusion as the closed `AUD-017`, which is why `lib/app.dart:57-60` already carried a comment about it.
+- **Remediation task:** Read `camera.world`; drop the `isMounted` guard (`removeFromParent` is a no-op without a parent and handles a pending child correctly); early-return when the incoming world is already active.
+- **Owner/due:** Claude (lead), done 2026-09-07.
+- **Workaround:** None.
+- **Retest evidence:** `test/battle_hud_test.dart` — "navigating repeatedly leaves exactly one world mounted". 70/70.
+- **Closure/acceptance owner:** Claude (lead), 2026-09-07 (c8).
 
 ## 15. Gate decision
 
@@ -623,5 +644,6 @@ Required checks:
 | 2026-09-03 | Baseline (pre-`PH-00`) | No-go | 0/1/4/2 | Claude Sonnet 5 | First audit. Found the working tree already contains partial, uncommitted, unverified game code beyond what this audit was briefed to expect — see `AUD-008`. Most urgent finding is `AUD-009` (uncommitted work, High). |
 | 2026-09-03 (c2) | `PH-00` in progress | No-go | 0/0/2/1 | Claude Sonnet 5 (planner) | `AUD-008`/`AUD-009` closed (fixed/committed). `flutter analyze` now shows 49 errors from newer code — root-caused to one file (`AUD-011`, assigned this cycle) plus a small remainder (`AUD-012`, next cycle). |
 | 2026-09-04 (c3) | `PH-00` in progress | No-go | 0/0/2/2 | Claude Sonnet 5 (planner) | Cursor tried c2's 1-file `AUD-011` fix, returned `IMPLEMENTATION_BLOCKED` (2 consumer files also need edits). Planner traced every consumer, verified a 3-file fix locally (56→34 issues, reverted before handoff), reassigned to Cursor. Surfaced a new pre-existing defect (`AUD-013`, `const Vector2` has no const constructor) while verifying — it accounts for the gap between the c2 assignment's optimistic ≤12 target and the real 34. |
+| 2026-09-07 (c8) | `PH-02` on-device gate | No-go | 0/0/0/2 | Claude Opus 5 (lead) | `AUD-021` root-caused and closed: the battle HUD was never wired to `BattleWorld` — the c7 diagnosis (a `swapWorld` viewport-clear race) was wrong, and is recorded as such. `AUD-022` closed alongside it. The regression test was run against the pre-fix tree first (0/4) so it is known to catch the defect. `flutter analyze` clean, 70/70. Gate stays No-go: no device was attached this cycle, so the on-device play-through is still unproven, and `AUD-002`/`AUD-005` remain open. |
 | 2026-09-04 (c5) | `PH-00` in progress | No-go | 0/0/0/0 | Claude Opus 5 (lead) | GNHF loop stopped after its c4 planner stalled; the lead took the work directly. Closed `AUD-013` (`adf7676`, analyze 31 → 6) and `AUD-012` (`733fb55`, `lib/app.dart` shell + boot test, analyze clean). Booting the app for the first time surfaced `AUD-014` — `OpacityEffect` on four non-`OpacityProvider` components — fixed in the same commit. `flutter analyze`: No issues found. `flutter test`: 35/35. Gate stays No-go on `AUD-002`/`AUD-005`/`AUD-007` and the still-unproven on-device play-through. |
 | 2026-09-04 (c4) | `PH-00` in progress | No-go | 0/0/1/2 | Claude Sonnet 5 (planner) | Cursor landed the c3 3-file `AUD-011` fix (commit `8387953`) — reran `flutter analyze` (34 issues, matches evidence) and `flutter test` (34/34) to confirm, closed `AUD-011`. Assigned the smallest remaining `AUD-012` piece — a missing `package:flame/events.dart` import in `right_panel_component.dart` (34→31) — to Cursor; `lib/app.dart`/`TASK-007` and two minor lints stay deferred as a separate, larger slice. |

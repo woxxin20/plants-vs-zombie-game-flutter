@@ -46,14 +46,28 @@ class LightVsShadowGame extends FlameGame
 
   /// Replaces the active screen. The previous world is removed outright so its
   /// particle generators stop ticking (spec §24 edge case 20).
+  ///
+  /// HUD is per-screen: a world mounts its own onto `camera.viewport` from its
+  /// `onLoad`. That runs *after* this method returns, so the viewport is
+  /// cleared here first — clearing it last deleted the incoming world's HUD
+  /// the moment it arrived, which is what left every battle with no HUD at all
+  /// (`AUD-021`).
   void swapWorld(World next) {
-    final previous = world;
+    // `camera.world`, NOT `FlameGame.world`. This method only ever assigns the
+    // camera's, so `world` stays the default World for the life of the game;
+    // reading it here made `previous.isMounted` false from the second swap on,
+    // leaving every outgoing world mounted and ticking (`AUD-022`). Same root
+    // confusion as `AUD-017`.
+    final previous = camera.world;
+    if (identical(previous, next)) return;
+
+    camera.viewport.removeAll(camera.viewport.children.toList());
     camera.world = next;
     if (!next.isMounted) add(next);
-    if (previous != next && previous.isMounted) {
-      previous.removeFromParent();
-    }
-    // HUD is per-screen: each world adds what it needs to camera.viewport.
-    camera.viewport.removeAll(camera.viewport.children.toList());
+    // No `isMounted` guard: the very first swap happens while FlameGame's own
+    // default World is still only queued, so testing for it left that empty
+    // world a child of the game forever. `removeFromParent` is a no-op when
+    // there is no parent, and handles a still-pending child correctly.
+    previous?.removeFromParent();
   }
 }

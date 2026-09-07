@@ -31,6 +31,9 @@ import '../particles/particle_definitions.dart' as fx;
 import '../components/hud/overlay_lose.dart';
 import '../components/hud/overlay_pause.dart';
 import '../components/hud/overlay_win.dart';
+import '../components/hud/right_panel_component.dart';
+import '../components/hud/toast_component.dart';
+import '../components/hud/top_bar_component.dart';
 
 /// How often a Beam Lamp / Frost Lens fires (spec §6: "20 dmg / 1.2s tick").
 const double kEmitterInterval = 1.2;
@@ -87,6 +90,12 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
   void Function(int waveIndex, int waveCount)? onWaveChanged;
   void Function(String message)? onToast;
 
+  /// The HUD this world owns on `camera.viewport` (spec §11). Null only before
+  /// [onLoad] has run. Not exposed: the viewport is the public surface, and a
+  /// test that reads the HUD from there is testing what the player sees.
+  TopBarComponent? _topBar;
+  RightPanelComponent? _panel;
+
   /// Capped particle budget — spec §18.3 / §24 (<= 50 draw calls per frame).
   late final ParticlePool _fx = ParticlePool(this);
 
@@ -104,9 +113,82 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     ]);
 
     glow = level.startGlow;
+    _mountHud();
+    _syncHud();
     onGlowChanged?.call(glow);
     onWaveChanged?.call(0, level.waves.length);
     state = GameState.playing;
+  }
+
+  // -----------------------------------------------------------------------
+  // HUD — spec §11
+  // -----------------------------------------------------------------------
+
+  /// Builds the TopBar and RightPanel and mounts them on `camera.viewport`.
+  ///
+  /// They belong to the viewport rather than to this world for two reasons:
+  /// the board scrolls nothing but the camera does shake on a loss
+  /// (`_finishLost`), and the viewport is the one surface `swapWorld` clears,
+  /// which ties the HUD's lifetime exactly to this world's.
+  void _mountHud() {
+    _topBar = TopBarComponent(
+      glow: glow,
+      waveCount: math.max(level.waves.length, 1),
+      flagWaves: {
+        for (var i = 0; i < level.waves.length; i++)
+          if (level.waves[i].flag) i,
+      },
+      onPause: pause,
+    );
+    _panel = RightPanelComponent(
+      tools: [for (final id in tray) Content.I.tool(id)],
+      onSlotTap: _onSlotTap,
+      boostEnabled: !usedBoost,
+      onBoost: _onBoost,
+    );
+    game.camera.viewport.addAll([_topBar!, _panel!]);
+  }
+
+  /// Arms a tray tool. Tapping the armed slot again disarms it — without that,
+  /// a mis-tap leaves the player holding a tool they cannot put back down.
+  void _onSlotTap(ToolDef def) {
+    selectedTool = selectedTool == def.id ? null : def.id;
+    GameAudio.haptic();
+  }
+
+  void _onBoost() {
+    if (!grantBoost()) return;
+    _panel?.boostEnabled = false;
+  }
+
+  /// Pushes simulation state into the HUD, once per frame, in one direction.
+  /// The HUD components own no game logic: they diff against their own last
+  /// value and animate. Nothing here reads back out of them.
+  void _syncHud() {
+    _topBar
+      ?..glow = glow
+      ..waveIndex = math.max(waveIndex - 1, 0)
+      ..waveCount = math.max(level.waves.length, 1);
+
+    final panel = _panel;
+    if (panel == null) return;
+    for (final slot in panel.slots) {
+      // A slot that has not finished loading has no paints yet, and its
+      // `selected` setter would reach for one that does not exist.
+      if (!slot.isLoaded) continue;
+      final def = slot.def;
+      final placedAt = lastPlaced[def.id];
+      slot
+        ..selected = selectedTool == def.id
+        ..affordable = glow >= def.cost
+        ..cooldownTotal = def.cooldown
+        ..cooldownRemaining = placedAt == null
+            ? 0
+            : math.max(0.0, def.cooldown - (time - placedAt));
+    }
+    panel.waveProgress = level.waves.isEmpty
+        ? 0
+        : waveIndex / level.waves.length;
   }
 
   // -----------------------------------------------------------------------
@@ -194,7 +276,14 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
         grid.tileAt(row, col).shake();
       }
     }
-    if (result.toast case final msg?) onToast?.call(msg);
+    if (result.toast case final msg?) {
+      onToast?.call(msg);
+      // The toast lands on the world at the tile the player actually tapped,
+      // not on the HUD — the message is about that tile (spec §17).
+      if (row >= 0 && row < kRows && col >= 0 && col < kCols) {
+        showToast(this, msg, layout.tileCenter(row, col));
+      }
+    }
   }
 
   /// Flash Bomb: 300 damage over its own tile plus one in every direction,
@@ -264,6 +353,8 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     // Spec §24 edge case 18: a dt spike must not teleport anything.
     final step = math.min(dt, 1 / 30);
     super.update(step);
+    // Ahead of the early-return: a paused battle still shows a truthful HUD.
+    _syncHud();
     if (state != GameState.playing) return;
     time += step;
 
