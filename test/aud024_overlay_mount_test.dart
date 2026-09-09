@@ -167,10 +167,7 @@ void main() {
       await _pump(tester, 5);
 
       expect(world.state, GameState.playing);
-      expect(
-        game.camera.viewport.children.whereType<PauseOverlay>(),
-        isEmpty,
-      );
+      expect(game.camera.viewport.children.whereType<PauseOverlay>(), isEmpty);
       final before = world.time;
       await _pump(tester, 10);
       expect(world.time, greaterThan(before));

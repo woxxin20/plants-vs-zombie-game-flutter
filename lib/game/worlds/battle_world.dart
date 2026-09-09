@@ -28,6 +28,7 @@ import '../components/tools/tool_factory.dart';
 import '../light_vs_shadow_game.dart';
 import '../particles/effect_pool.dart';
 import '../particles/particle_definitions.dart' as fx;
+import '../components/hud/overlay_base.dart';
 import '../components/hud/overlay_lose.dart';
 import '../components/hud/overlay_pause.dart';
 import '../components/hud/overlay_win.dart';
@@ -131,7 +132,9 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
   /// (`_finishLost`), and the viewport is the one surface `swapWorld` clears,
   /// which ties the HUD's lifetime exactly to this world's.
   void _mountHud() {
+    final viewSize = game.camera.viewport.size;
     _topBar = TopBarComponent(
+      viewportSize: viewSize,
       glow: glow,
       waveCount: math.max(level.waves.length, 1),
       flagWaves: {
@@ -141,6 +144,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
       onPause: pause,
     );
     _panel = RightPanelComponent(
+      viewportSize: viewSize,
       tools: [for (final id in tray) Content.I.tool(id)],
       onSlotTap: _onSlotTap,
       boostEnabled: !usedBoost,
@@ -709,6 +713,9 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
   void _showOverlay(Component overlay) {
     _dismissOverlay();
     _activeOverlay = overlay;
+    if (overlay is OverlayDialog) {
+      overlay.size = game.camera.viewport.size;
+    }
     game.camera.viewport.add(overlay);
   }
 

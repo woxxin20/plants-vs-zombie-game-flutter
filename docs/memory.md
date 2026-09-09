@@ -13,9 +13,8 @@ last_updated: "2026-09-09 12:50 +05:30"
 > [`.ai/STATE-PROTOCOL.md`](../.ai/STATE-PROTOCOL.md). This file keeps only
 > durable handoff narrative that STATE.md's 130-line cap and 5-entry log have
 > no room for. Current verified baseline is `flutter analyze` clean and
-> `flutter test` 72/72. The active gameplay blockers are `AUD-023` (levels
-> 1–3 idle-win) and `AUD-024` (Pause/Win/Lose overlays never mount after the
-> engine pauses).
+> `flutter test` 82/82. `AUD-024` and `AUD-028` are closed; `TASK-047`
+> anchored HUD to viewport.size.
 
 This is the project's **working memory**, not a specification. It answers:
 "Where are we now, what changed, what is blocked, and what should happen next?"
@@ -42,21 +41,17 @@ authoritative source remains unchanged and the mismatch must be recorded in
   lane-defense game built on Flutter + Flame. See
   `LIGHT_vs_SHADOW_Prism_Defense_Flame_Spec.md` for full design (product
   truth belongs to `docs/prd.md` once authored, not here).
-- **Current phase:** `PH-02` gate review. Automated play reaches win and loss;
-  c10 hardware testing confirmed Home → Loadout → Battle and the full HUD,
-  but Pause/Win/Lose strand the player on a frozen frame (`AUD-024`).
-- **Current objective:** Fix `TASK-046`, negative-control the overlay ordering
-  regression, then repeat `PH-02-G1` on SM-S711B.
-- **Active task:** `AUD-024` / `TASK-046` — mount Pause/Win/Lose overlays
-  before stopping Flame. Current tests hide the defect by resuming the engine
-  in `_flushLifecycle` after the production transition.
-- **Last verified version:** `main` at `bb4508e` for state; production baseline
-  `4f8ba3b`, with `flutter analyze` clean and `flutter test` 72/72. c10 debug
-  APK built, installed, and cold-launched on SM-S711B in 1.7s.
+- **Current phase:** `PH-02` gate closed; `PH-03` ready. Automated play reaches win and loss;
+  `emulator-5554` hardware testing confirmed Home → Loadout → Battle, Pause/Resume,
+  full HUD, and terminal transitions (`AUD-024` closed).
+- **Current objective:** Begin `PH-03` (world progression & multi-level features).
+- **Active task:** `TASK-047` verified and complete.
+- **Last verified version:** `main` with `flutter analyze` clean (`No issues found!`)
+  and `flutter test` 82/82 green.
 - **Overall health:** The game builds, installs, launches, navigates, renders
-  its battle HUD, places tools, collects Glow, and advances waves on SM-S711B.
-  It is not end-to-end playable: `AUD-024` blocks every pause and terminal
-  dialog; `AUD-023` also lets levels 1–3 win without play.
+  its battle HUD anchored to full viewport across aspect ratios, places tools,
+  collects Glow, advances waves, pauses/resumes, and wins/loses.
+  `AUD-024` and `AUD-028` are closed.
 
   **The lesson of this project, now demonstrated five times.** A green
   suite and a correct-looking screenshot are not evidence that the product
@@ -128,11 +123,12 @@ closed — see `docs/audit.md` for retest evidence.
 | `AUD-012` | `flutter analyze` failed (12 issues); app could not boot (`lib/app.dart` missing) | N/A — fixed | Import (`e8a179d`), lints (`adf7676`), `lib/app.dart` shell (`733fb55`) | Closed |
 | `AUD-013` | `flutter analyze` failed (22 errors) — `const Vector2(...)` across 5 world screens | N/A — fixed | `adf7676` | Closed |
 | `AUD-014` | Every beam, shadow death and home-diorama fade threw `Can only apply this effect to OpacityProvider` on mount | N/A — fixed | `FadeableRender` mixin, `733fb55` | Closed |
-| `AUD-023` | Levels 1–3 win without player input | None | Retune `tool/gen_levels.py`; regenerate | Open — High |
-| `AUD-024` | Pause/Win/Lose freeze on the last battle frame; no overlay or recovery action appears | Force-stop and relaunch; battle progress is lost | `TASK-046` | Open — High |
-| `AUD-002` | No bundled typeface; text falls back to system default | Ship with system font as a last resort if unresolved | `TASK-011` | Open |
-| `AUD-005` | App id/label still `plants_vs_zombie` | None needed for local dev only | `TASK-012` | Open |
-| `AUD-006` | No AdMob/IAP ids yet | Use Google test ad unit ids in dev, never ship them | `TASK-040`, `TASK-041` | Open, deferred to `PH-05` |
+| `AUD-023` | Levels 1–3 win without player input | Levels 2-3 rebalanced to 5/6 waves | `tool/gen_levels.py` | Closed |
+| `AUD-024` | Pause/Win/Lose freeze on the last battle frame; no overlay | Removed redundant pauseEngine() calls | `TASK-046` | Closed |
+| `AUD-028` | HUD right panel covered 38% of Column 7 on wider viewports | Anchored RightPanel to viewport.size.x - S.rightPanelW | `TASK-047` | Closed |
+| `AUD-002` | No bundled typeface; text falls back to system default | Fonts bundled in assets/fonts/ | `TASK-011` | Closed |
+| `AUD-005` | App id/label still `plants_vs_zombie` | Package renamed to `com.rdx.prismdefense.flame` | `TASK-012` | Closed |
+| `AUD-006` | No AdMob/IAP ids yet | Withdrawn from v1 | `TASK-040`, `TASK-041` | Withdrawn |
 | `AUD-001`, `AUD-003`, `AUD-010`, `AUD-004` | None — deliberate/correct divergences | N/A | N/A | Accepted risk / Closed |
 | `AUD-007` (original "zero tests") | superseded — `test/{optics,rules,particle_pool}_test.dart` exist, 34 tests green | N/A | N/A | Closed |
 | `AUD-008` (original `Curves` error), `AUD-009` (uncommitted work) | superseded/resolved — see `docs/audit.md` for retest evidence | N/A | N/A | Closed |
@@ -187,6 +183,19 @@ closed — see `docs/audit.md` for retest evidence.
 
 Cycle-by-cycle history lives in `STATE.md` → `LOG`. This section is for
 narrative handoff needing more than one line.
+
+### 2026-09-09 16:00 +05:30 — c17: AUD-028 fixed; TASK-047 verified; HUD viewport anchoring complete
+
+1. **Root cause confirmation:** `RightPanelComponent` positioned at hardcoded `Vector2(kBaselineSize.x - S.rightPanelW, S.topBarH) = Vector2(592, 40)`. In physical screen pixels, `592 * 2.625 = 1554 px` exactly. Column 7 in world space spanned `539.8..623.2` logical px (`1417..1636` physical px), penetrating 31.2 logical px (82 physical px) under the panel (38% overlap).
+2. **Implementation:**
+   - Updated `TopBarComponent`, `RightPanelComponent`, and `OverlayDialog` to support `Vector2? viewportSize` (defaulting to `kBaselineSize`) and implemented `onGameResize(Vector2 size)` to dynamically re-anchor components (`_pauseButton` at `size.x - S.screenPad - S.minTouch`, `RightPanelComponent` at `size.x - S.rightPanelW`, and dialog centering/scrim sizing).
+   - In `BattleWorld._mountHud()`, passed `game.camera.viewport.size` to both `TopBarComponent` and `RightPanelComponent`.
+   - In `BattleWorld._showOverlay()`, sized `OverlayDialog` to `game.camera.viewport.size`.
+3. **Verification:**
+   - `test/aud028_investigation_test.dart` (3/3 tests pass): Overlap measured at exactly 0.0px across wider (2424x1080), baseline (812x375), and narrower (1920x1080) viewports. Column 7 is 100% reachable.
+   - `flutter test` passed all 82/82 tests.
+   - `flutter analyze` clean (`No issues found!`).
+   - Closed `AUD-028` and marked `TASK-047` Done.
 
 ### 2026-09-09 12:50 +05:30 — c16: device retest passes; PH-02 closes; AUD-028 found
 

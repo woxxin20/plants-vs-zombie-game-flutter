@@ -16,6 +16,7 @@ import 'tray_slot_component.dart';
 
 class RightPanelComponent extends PositionComponent {
   RightPanelComponent({
+    Vector2? viewportSize,
     required List<ToolDef> tools,
     required void Function(ToolDef) onSlotTap,
     this.waveProgress = 0,
@@ -27,8 +28,14 @@ class RightPanelComponent extends PositionComponent {
        ],
        _boostEnabled = boostEnabled,
        super(
-         size: Vector2(S.rightPanelW, kBaselineSize.y - S.topBarH),
-         position: Vector2(kBaselineSize.x - S.rightPanelW, S.topBarH),
+         size: Vector2(
+           S.rightPanelW,
+           (viewportSize ?? kBaselineSize).y - S.topBarH,
+         ),
+         position: Vector2(
+           (viewportSize ?? kBaselineSize).x - S.rightPanelW,
+           S.topBarH,
+         ),
        );
 
   /// Tray slots, up to `kTrayLimit` — exposed so the battle world can drive
@@ -53,6 +60,19 @@ class RightPanelComponent extends PositionComponent {
   late final _ProgressFill _fill;
   late final _BoostButton _boost;
   double _lastProgress = -1;
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    position = Vector2(size.x - S.rightPanelW, S.topBarH);
+    this.size = Vector2(S.rightPanelW, size.y - S.topBarH);
+    if (isLoaded) {
+      _boost.position = Vector2(
+        (this.size.x - 200) / 2,
+        this.size.y - S.cardPad - S.minTouch,
+      );
+    }
+  }
 
   @override
   Future<void> onLoad() async {

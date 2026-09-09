@@ -16,13 +16,14 @@ import 'hud_paint.dart';
 
 class TopBarComponent extends PositionComponent {
   TopBarComponent({
+    Vector2? viewportSize,
     this.glow = 0,
     this.waveIndex = 0,
     this.waveCount = 1,
     Set<int>? flagWaves,
     required this.onPause,
   }) : flagWaves = flagWaves ?? <int>{},
-       super(size: Vector2(kBaselineSize.x, S.topBarH));
+       super(size: Vector2((viewportSize ?? kBaselineSize).x, S.topBarH));
 
   /// Current glow total — spec caps the display at `kGlowMax`.
   int glow;
@@ -40,11 +41,25 @@ class TopBarComponent extends PositionComponent {
   late final HudLabel _glowLabel;
   late final HudLabel _glowMaxLabel;
   late final HudLabel _waveLabel;
+  late final _PauseButton _pauseButton;
   final List<_FlagDot> _flagDots = [];
 
   int _lastGlow = 0;
   int _lastWaveIndex = -1;
   int _lastWaveCount = -1;
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    this.size.x = size.x;
+    if (isLoaded) {
+      _pauseButton.position = Vector2(
+        this.size.x - S.screenPad - S.minTouch,
+        0,
+      );
+      _syncFlagRow();
+    }
+  }
 
   @override
   Future<void> onLoad() async {
@@ -75,7 +90,11 @@ class TopBarComponent extends PositionComponent {
 
     _waveLabel = HudLabel('WAVE ${waveIndex + 1}/$waveCount', style: T.label);
     add(_waveLabel);
-    add(_PauseButton(onPause: () => onPause()));
+    _pauseButton = _PauseButton(
+      onPause: () => onPause(),
+      position: Vector2(size.x - S.screenPad - S.minTouch, 0),
+    );
+    add(_pauseButton);
 
     _lastGlow = glow;
     _syncFlagRow();
@@ -194,11 +213,8 @@ class _FlagDot extends PositionComponent {
 
 /// Right-side pause toggle — 48x48, two hand-drawn bars.
 class _PauseButton extends PositionComponent with TapCallbacks {
-  _PauseButton({required this.onPause})
-    : super(
-        size: Vector2.all(S.minTouch),
-        position: Vector2(kBaselineSize.x - S.screenPad - S.minTouch, 0),
-      );
+  _PauseButton({required this.onPause, required super.position})
+    : super(size: Vector2.all(S.minTouch));
 
   final void Function() onPause;
 

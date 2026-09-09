@@ -20,12 +20,17 @@ import 'hud_paint.dart';
 class OverlayDialog extends PositionComponent
     with TapCallbacks, FadeableRender {
   OverlayDialog({
+    Vector2? viewportSize,
     required this.cardSize,
     required this.title,
     required this.titleColor,
     required List<Component> body,
   }) : _body = body,
-       super(size: kBaselineView, position: Vector2.zero(), priority: 1000);
+       super(
+         size: viewportSize ?? kBaselineView,
+         position: Vector2.zero(),
+         priority: 1000,
+       );
 
   static final Vector2 kBaselineView = Vector2(812, 375);
 
@@ -34,15 +39,28 @@ class OverlayDialog extends PositionComponent
   final Color titleColor;
   final List<Component> _body;
 
+  late final _Scrim _scrim;
+  late final _Card _card;
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    this.size = size;
+    if (isLoaded) {
+      _scrim.size = size.clone();
+      _card.position = (size - cardSize) / 2;
+    }
+  }
+
   @override
   Future<void> onLoad() async {
-    add(_Scrim(size: size.clone()));
+    add(_scrim = _Scrim(size: size.clone()));
 
     final cardPos = (size - cardSize) / 2;
-    final card = _Card(size: cardSize.clone(), position: cardPos);
-    await add(card);
+    _card = _Card(size: cardSize.clone(), position: cardPos);
+    await add(_card);
 
-    card.add(
+    _card.add(
       HudLabel(
         title,
         style: T.h1,
@@ -52,7 +70,7 @@ class OverlayDialog extends PositionComponent
       ),
     );
     for (final child in _body) {
-      card.add(child);
+      _card.add(child);
     }
 
     opacity = 0;

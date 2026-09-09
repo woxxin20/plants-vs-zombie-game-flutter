@@ -486,7 +486,7 @@ Required checks:
 | `AUD-018` | Low | Open | Spec §23 | Code fixed at c13; still needs a device run that hears a cue after a sound toggle | `PH-04` audio owner | Unchanged at c15: no test host has the audio plugin, so `_ready` is false and the path stays unexercised |
 | `AUD-025` | Medium | Closed | `docs/rules.md` §9; `PRD-FR-022` | Drop `assets/images/` from the `pubspec.yaml` asset manifest (launcher icons are a build-time input); add a bundle-size budget row to `rules.md` §9 | `PH-04`/`PH-06` owner | 3,496,763 bytes bundled into every APK/IPA, referenced by zero Dart code (c14) |
 | `AUD-026` | Medium | Closed | Xcode build settings | `flutter_launcher_icons` wrote the icon name into a boolean setting; restored `= YES` | Done | Fixed at c14; `git diff` on `project.pbxproj` is now empty |
-| `AUD-028` | Medium | Open | Spec §11; `PRD-FR-020` | Reconcile the HUD's viewport coordinate space with the board's world space so `RightPanelComponent` cannot overlap the board on a non-baseline aspect ratio | `PH-02`/`PH-04` owner | Measured on a 2424x1080 viewport: panel left edge at x=1554, column 7 spans 1418-1633, so 38% of the last column is covered (c16) |
+| `AUD-028` | Medium | Closed | Spec §11; `PRD-FR-020` | Reconcile the HUD's viewport coordinate space with the board's world space so `RightPanelComponent` cannot overlap the board on a non-baseline aspect ratio | Done | Anchored RightPanel to viewport.size.x - S.rightPanelW and TopBar to viewport.size.x; 0px overlap verified across 3 viewports in test/aud028_investigation_test.dart (TASK-047) |
 | `AUD-027` | Medium | Closed | `PRD-FR-021`; spec §23 | Call `GameAudio.startBgm()` from a real production site, or delete `startBgm`/`stopBgm` + `bgm.mp3` and strike BGM from `PRD-FR-021` | `PH-04` audio owner | Zero call sites in `lib/`; 321,350 bytes preloaded and never played (c14) |
 | `AUD-016` | Medium | Closed | `architecture.md` §6 vs the tree | `ADR-007` — accept implemented design, drop `TASK-021` | Done | Confirmed: `ADR-007` recorded (c6) |
 | `AUD-015` | Medium | Closed | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Cursor / PH-02 | Closed 2026-09-04 — `integration_test/uj01_test.dart` green on Windows |
@@ -657,12 +657,13 @@ Required checks:
 
 ### `AUD-028` — the right HUD panel covers the board's last tile column
 
-- **Status:** Open.
+- **Status:** Closed — fixed 2026-09-09 (c17).
 - **Severity:** Medium
 - **Detected:** 2026-09-09 (c16), during the `AUD-024` device retest on `emulator-5554`.
 - **Source breached:** Spec §11 (HUD layout); `PRD-FR-020` (landscape).
 - **Affected users/data/components:** `lib/game/components/hud/right_panel_component.dart`,
-  `lib/core/layout.dart`, `lib/game/light_vs_shadow_game.dart` camera setup.
+  `lib/game/components/hud/top_bar_component.dart`, `lib/game/components/hud/overlay_base.dart`,
+  `lib/game/worlds/battle_world.dart`.
 - **Evidence:** measured by sampling a horizontal scanline through the empty bottom tile row of
   a battle screenshot at 2424x1080. Tile pitch is 230 device px, giving a camera scale of
   230 / (76 + 4) = 2.875, which matches `BattleLayout` exactly: the first tile's left edge sits at
@@ -676,21 +677,38 @@ Required checks:
   landing ~52 design units left of where the model puts it. `onGameResize`
   (`light_vs_shadow_game.dart:40-45`) deliberately rebuilds `BattleLayout` from `kBaselineSize`
   and ignores the real size, so the world is baseline-correct while the viewport is not.
-- **Reproduction:** launch any battle on a display whose aspect ratio is not 812:375 (2.165) —
-  2424x1080 is 2.244 — and compare the right panel's left edge against the seventh column.
-- **Expected:** the panel never overlaps the board at any supported aspect ratio.
-- **Impact:** the last column is where shadows enter. It is partly hidden; whether it is also
-  untappable there was **not** tested and must be, because `TileComponent` hit-testing runs in
-  world space while the panel intercepts taps in viewport space. If taps are swallowed, this is a
-  playability defect, not a cosmetic one — the same shape as `AUD-019`.
-- **Likely cause:** HUD components position themselves against `kBaselineSize.x` while the fitted
-  viewport is wider in design units. Needs a real investigation rather than a nudge — do not
-  "fix" this by shrinking `S.rightPanelW` until it looks right on one device.
-- **Remediation task:** to be raised. Determine the viewport's true coordinate space, then either
-  anchor the panel to the viewport's own right edge or drive `BattleLayout` from the real size.
-- **Owner/due:** `PH-02`/`PH-04` owner.
-- **Retest evidence:** Pending. Retest on at least two aspect ratios, one wider and one narrower
-  than 2.165, and assert tap reachability of a column-7 tile, not just its visibility.
+- **Root cause:** `RightPanelComponent` is a child of `camera.viewport` (which in Flame uses
+  `MaxViewport` measuring the full Flutter canvas in logical pixels: e.g. 923.4x411.4 on emulator-5554
+  at 2424x1080 with DPR 2.625). `RightPanelComponent` hardcodes:
+  `position: Vector2(kBaselineSize.x - S.rightPanelW, S.topBarH)` = `Vector2(812 - 220, 40) = Vector2(592, 40)`
+  in its constructor.
+  1) In physical screen pixels, `592 * 2.625 = 1554.0 px`, matching the c16 scanline measurement exactly.
+  2) In world space, `viewfinder.zoom = min(923.4/812, 411.4/375) = 1.0971` (or `1080/375 = 2.88` physical).
+     Column 7 spans world 492..568, which maps to `539.8..623.2` logical px (`1417..1636` physical px).
+  3) Because 623.2 > 592.0, Column 7 penetrates 31.2 logical px (82 physical px) under the panel's hardcoded
+     x=592 origin (37.4% overlap).
+  4) Furthermore, the panel floats at x=592..812, leaving an unused 111.4 logical px (292.4 physical px)
+     blank margin on the right of the screen; and on narrower screens (e.g. 16:9, logical width 800),
+     the panel overflows the right edge by 12 logical px.
+- **Tappability verdict:**
+  1) **Unobstructed zone (left 62.6% of tile, x=539.8..592.0):** 100% tappable across all 3 rows. Every
+     tool placement succeeds.
+  2) **Overlap zone (right 37.4% of tile, x=592.0..623.2):**
+     - Row 0 and Row 1: taps hitting the non-interactive background of `RightPanelComponent` pass
+       through to `TileComponent` underneath (because `RightPanelComponent` has no `TapCallbacks`).
+       However, taps landing on `TraySlotComponent` (y=74..138 or 146..210) are swallowed by the slot.
+     - Row 2: occluded by `_BoostButton` (y=317..365, x=602..802). Taps are intercepted by the Boost button
+       and never reach Tile(2, 6).
+- **Reproduction:** automated regression test in `test/aud028_investigation_test.dart` asserts across
+  three aspect ratios: wider (2424x1080, 2.244:1), baseline (812x375, 2.165:1), and narrower (1920x1080, 1.778:1).
+- **Expected:** the panel is right-anchored to `viewport.size.x` (e.g. x = `viewport.size.x - S.rightPanelW`),
+  guaranteeing zero overlap and eliminating the floating dead space.
+- **Remediation task:** `TASK-047` — anchor `RightPanelComponent` to `viewport.size.x - S.rightPanelW`,
+  size `TopBarComponent` to `viewport.size.x`, and size `OverlayDialog` to `viewport.size` upon mount / resize.
+- **Owner/due:** Lead (c17).
+- **Retest evidence:** `test/aud028_investigation_test.dart` (3/3 tests pass). Overlap drops to exactly 0.0px
+  across wider, baseline, and narrower aspect ratios. Full test suite green (82/82), `flutter analyze` clean.
+- **Closure/acceptance owner:** Lead, 2026-09-09 (c17).
 
 ### `AUD-019` — go_router's routed `Navigator` sat over the `GameWidget` and swallowed every tap; the whole game was untappable
 
