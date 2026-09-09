@@ -1,4 +1,4 @@
-package com.example.plants_vs_zombie
+package com.rdx.prismdefense.flame
 
 import io.flutter.embedding.android.FlutterActivity
 

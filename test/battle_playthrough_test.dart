@@ -199,13 +199,11 @@ void main() {
     t.view.devicePixelRatio = 1.0;
     addTearDown(t.view.reset);
 
-    // Level 4 rather than level 1 on purpose: levels 1-3 ship only three waves,
-    // and one sweep per lane clears an entire lane whatever the shadows'
-    // positions (spec §17), so those three levels cannot be lost at all and
-    // are won by leaving the phone on the table. That is `AUD-023`, a level-data
-    // defect, not a rules defect — asserting it here would lock the bug in, so
-    // this test proves the fail state is reachable on the first level where the
-    // waves outnumber the sweeps.
+    // Level 4 rather than level 1 on purpose: level 1 is deliberately
+    // unloseable (3 waves, 3 free lane sweeps) so a first-time player cannot
+    // fail their first contact with the game — spec §22 onboarding. Levels 2-3
+    // were the same by accident until `AUD-023` was fixed; they now run 5 and 6
+    // waves and are covered by the idle-loss test below.
     final battle = await _battle(t, 4);
 
     const limit = 240.0;
@@ -222,4 +220,34 @@ void main() {
           't=${battle.time.toStringAsFixed(1)}s',
     );
   });
+
+  // AUD-023 regression. Levels 1-3 all shipped 3 waves against 3 free lane
+  // sweeps, so an idle player won every one of them and no early level
+  // exercised the core loop at all. Level 1 stays unloseable on purpose; 2 and
+  // 3 must now punish doing nothing. Negative control: revert the `{2: 5, 3: 6}`
+  // override in tool/gen_levels.py, regenerate, and both cases below fail with
+  // `GameState.won`.
+  for (final levelId in const [2, 3]) {
+    testWidgets('level $levelId cannot be won by idling (AUD-023)', (t) async {
+      t.view.physicalSize = _screen;
+      t.view.devicePixelRatio = 1.0;
+      addTearDown(t.view.reset);
+
+      final battle = await _battle(t, levelId);
+
+      const limit = 240.0;
+      while (battle.state == GameState.playing && battle.time < limit) {
+        await _pump(t, 30);
+      }
+
+      expect(
+        battle.state,
+        GameState.lost,
+        reason:
+            'level $levelId ships ${battle.level.waves.length} waves against '
+            '3 lane sweeps, so an idle player must lose. Reached '
+            '${battle.state.name} at t=${battle.time.toStringAsFixed(1)}s',
+      );
+    });
+  }
 }

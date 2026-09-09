@@ -30,8 +30,26 @@
       ]
     },
     {
-      "flag": true,
       "delay": 37.5,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 2
+        }
+      ]
+    },
+    {
+      "delay": 47.9,
+      "shadows": [
+        {
+          "id": "basic",
+          "lane": 1
+        }
+      ]
+    },
+    {
+      "flag": true,
+      "delay": 58.9,
       "shadows": [
         {
           "id": "basic",

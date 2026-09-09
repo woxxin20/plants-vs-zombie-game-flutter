@@ -42,6 +42,12 @@ NAMES = {
 # rhythm. Non-flag waves are small probes; flag waves are the full-lane pushes.
 def build_waves(level, flags, pool, rng):
     total = flags + 2 + min(level // 4, 3)  # 3..8 waves, growing with level
+    # AUD-023: levels 1-3 shipped 3 waves against 3 free lane sweeps, so an idle
+    # player absorbed every wave and won without placing a single tool -- no
+    # early level exercised the core loop. Level 1 stays unloseable on purpose
+    # (guaranteed first success, spec section 22 onboarding); 2 and 3 now out-run
+    # the sweeps, so doing nothing loses at wave 4.
+    total = {2: 5, 3: 6}.get(level, total)
     flag_slots = set()
     # Flag waves are always the last `flags` waves, so pressure ends the level.
     for i in range(total - flags, total):

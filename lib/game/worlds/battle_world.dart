@@ -643,7 +643,9 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
 
     GameAudio.play(Sfx.win);
     _fx.emit(() => fx.confettiFall(Vector2(kBaselineSize.x / 2, 20), 420));
-    game.pauseEngine();
+    // AUD-024: do NOT pauseEngine here. `update` already stops the sim at the
+    // `state != playing` gate, and a paused engine never runs the tick that
+    // mounts and paints the overlay we are about to queue.
     _showOverlay(
       WinOverlay(
         stars: stars,
@@ -669,7 +671,7 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
           repeatCount: 3,
         ),
         onComplete: () {
-          game.pauseEngine();
+          // AUD-024: see _finishWon. The `state` gate froze the sim at :658.
           _showOverlay(LoseOverlay(onTryAgain: onLose, onMap: onLose));
         },
       ),
@@ -681,7 +683,11 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
   void pause({bool showOverlay = true}) {
     if (state != GameState.playing) return;
     state = GameState.paused;
-    game.pauseEngine();
+    // AUD-024: the `state` assignment above is what freezes the simulation
+    // (see `update`). Pausing the engine here as well only stopped the render
+    // loop, so the queued overlay never mounted and the battle looked hung.
+    // The lifecycle path in app.dart still pauses the engine, deliberately:
+    // a backgrounded app should not tick at all.
     if (showOverlay) {
       _showOverlay(
         PauseOverlay(onResume: resume, onRestart: onLose, onHome: onLose),
@@ -693,6 +699,8 @@ class BattleWorld extends World with HasGameReference<LightVsShadowGame> {
     if (state != GameState.paused) return;
     _dismissOverlay();
     state = GameState.playing;
+    // Only meaningful when the lifecycle handler paused the engine while this
+    // overlay was up; a no-op otherwise.
     game.resumeEngine();
   }
 

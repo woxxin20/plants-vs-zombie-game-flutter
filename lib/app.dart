@@ -11,9 +11,9 @@ import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/audio.dart';
 import 'core/save_store.dart';
 import 'core/tokens.dart';
-import 'data/models.dart' show GameState;
 import 'data/rules.dart' show dailyLevelId;
 import 'game/light_vs_shadow_game.dart';
 import 'game/worlds/battle_world.dart';
@@ -55,16 +55,20 @@ class _PrismDefenseAppState extends State<PrismDefenseApp>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       _game.pauseEngine();
+      GameAudio.stopBgm();
       // `camera.world`, NOT `game.world`: swapWorld sets the camera's, while
       // FlameGame.world stays the default World forever. Reading the wrong one
       // makes every `is BattleWorld` below silently false.
       final world = _game.camera.world;
       if (world is BattleWorld) world.pause();
     } else if (state == AppLifecycleState.resumed) {
-      final world = _game.camera.world;
-      // Battle stays paused behind the overlay until the player taps Resume.
-      if (world is BattleWorld && world.state == GameState.paused) return;
+      // AUD-024: always resume the ENGINE. A battle stays frozen behind its
+      // overlay because BattleWorld.update gates on `state != playing`, not
+      // because the engine is stopped. Returning early here left the engine
+      // paused with a queued Pause overlay that could never mount or be
+      // tapped -- the player could not get out of the battle at all.
       _game.resumeEngine();
+      GameAudio.startBgm();
     }
   }
 

@@ -135,10 +135,10 @@ class Elevation {
 //
 // ADR-005: the spec names Orbitron / Inter / JetBrainsMono via GoogleFonts, but
 // the product is offline-first (PRD-NFR: playable in airplane mode), so runtime
-// font fetching is forbidden. Until the TTFs are sourced, licensed and bundled,
-// `fontFamily` is null and the platform default is used. Sizes, weights, line
-// heights and letter spacing below are already the final spec values, so
-// bundling the fonts later is a one-line change per family.
+// font fetching is forbidden. The three families are now BUNDLED as variable
+// TTFs under assets/fonts/ (SIL OFL 1.1, licence text alongside) and declared in
+// pubspec.yaml, so `F.bundled` is true and these names resolve. Do not add the
+// google_fonts package. Closes ARCH-Q-001 / AUD-002.
 // ---------------------------------------------------------------------------
 
 abstract final class F {
@@ -147,8 +147,8 @@ abstract final class F {
   static const ui = 'Inter';
   static const mono = 'JetBrainsMono';
 
-  /// Flip to true once the TTFs are bundled in pubspec.yaml (see TASK for fonts).
-  static const bundled = false;
+  /// True since 2026-09-09: assets/fonts/ ships all three families.
+  static const bundled = true;
 
   static String? family(String name) => bundled ? name : null;
 }

@@ -30,6 +30,9 @@ Future<void> main() async {
   await SaveStore.open();
   await Content.load();
   await GameAudio.init();
+  // AUD-027: one ambient loop for the whole app. Started once here rather than
+  // per-world, so navigating Home -> Map -> Battle does not restart the track.
+  await GameAudio.startBgm();
 
   runApp(const ProviderScope(child: PrismDefenseApp()));
 }

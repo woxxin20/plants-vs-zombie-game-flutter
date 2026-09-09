@@ -50,7 +50,22 @@ flutter:
     - assets/data/
     - assets/levels/
     - assets/audio/
-    - assets/images/
+    # AUD-025: assets/images/ is deliberately NOT bundled. Nothing in lib/ loads
+    # it; icon.png is a build-time input for flutter_launcher_icons and banner/
+    # battlefield are store art. Bundling them added 3.4 MB of dead payload.
+
+  fonts:
+    # ARCH-Q-001 / AUD-002. SIL OFL 1.1, licence text in assets/fonts/.
+    # Variable fonts: one file per family covers every weight the tokens use.
+    - family: Orbitron
+      fonts:
+        - asset: assets/fonts/Orbitron.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono.ttf
 
 flutter_launcher_icons:
   android: "launcher_icon"
