@@ -3,7 +3,7 @@ document: Active Project Memory and Handoff
 authority: Short-lived current state, recent work, blockers, bugs, and next action
 status: Active
 owner: "Solo developer (repo owner)"
-last_updated: "2026-09-09 10:05 +05:30"
+last_updated: "2026-09-09 12:50 +05:30"
 ---
 
 # Memory — LIGHT vs SHADOW: Prism Defense
@@ -187,6 +187,46 @@ closed — see `docs/audit.md` for retest evidence.
 
 Cycle-by-cycle history lives in `STATE.md` → `LOG`. This section is for
 narrative handoff needing more than one line.
+
+### 2026-09-09 12:50 +05:30 — c16: device retest passes; PH-02 closes; AUD-028 found
+
+Ran the retest c15 could not: a real playthrough on `emulator-5554` (Android 17, 2424x1080,
+x86_64), fresh install of `com.rdx.prismdefense.flame`, no prior data.
+
+**`AUD-024` is dead.** Cold launch 12.3s, Home -> Loadout (PICKED 3/3) -> Battle. Tapping Pause
+during wave 1 mounted the **PAUSED** overlay with RESUME / RESTART / HOME — the exact dialog c10
+and c11 never saw. RESUME dismissed it and the simulation advanced. Level 1 then ran to
+**VICTORY — 1 STAR, +30 COINS**; MAP returned to the level grid with the star, the 30 coins and
+the level-2 unlock all persisted. Logcat clean throughout.
+
+The discriminating evidence is frame churn. c11 recorded byte-identical screenshots 10s apart
+while the app sat foreground and awake. Here the Pause frames at +2s and +10s differed
+(`b278dd..` vs `974613..`), and 24 frames sampled over 4 minutes were all distinct. The renderer
+never stalled, which is precisely what removing the three `pauseEngine()` calls was supposed to
+achieve. **`PH-02-G1` passes and `PH-02` closes.**
+
+**Found `AUD-028` while looking at the battle.** The right HUD panel covers 38% of the board's
+seventh tile column. Measured, not eyeballed: sampling a scanline through the empty bottom row
+gives a tile pitch of 230 px, so the camera scale is 230/(76+4) = 2.875, which matches
+`BattleLayout` exactly — the first tile's left edge is at 33 px = 11.5 design units against an
+`origin.x` of 12. Column 7 therefore spans 1414-1633 px, and the panel's left edge measures 1554.
+
+What makes this worth writing down: `BattleLayout` is *self-consistent*. On the 812x375 baseline
+the board ends at 568 and the panel starts at 592, a clean 24-unit gap, and the model predicts no
+overlap at all. The board is drawn in **world** space and the panel in **camera.viewport** space,
+and those two stop agreeing the moment the camera letterboxes a non-baseline aspect ratio
+(2424/1080 = 2.244 against the design 2.165). `onGameResize` deliberately rebuilds `BattleLayout`
+from `kBaselineSize` and ignores the real size, so the world stays baseline-correct while the
+viewport does not. Do not "fix" it by shrinking `S.rightPanelW` until one device looks right.
+
+The untested half matters more than the visible one: column 7 is where shadows enter, and
+`TileComponent` hit-tests in world space while the panel intercepts taps in viewport space. If the
+panel is swallowing taps there, this is a playability defect of the same shape as `AUD-019`, not a
+cosmetic one. Nobody has checked. Retest must assert tap reachability of a column-7 tile on two
+aspect ratios, one wider and one narrower than 2.165 — visibility alone is not the question.
+
+Audio remains the one thing no automated test can reach (`AUD-018`). The device run played with
+sound on and nothing crashed, but a screenshot cannot hear a cue, so it stays open.
 
 ### 2026-09-09 10:05 +05:30 — c15: owner decisions applied; AUD-023 and AUD-024 closed
 

@@ -179,6 +179,7 @@ section becomes meaningful starting at `PH-00`'s exit gate (empty-scene
 | 2026-09-07 (c9) | Idle probe, all 20 levels, no input | Local Windows | Levels 1–3 **won**, 4–20 lost | Found `AUD-023`. Throwaway harness, not committed | `AUD-023` |
 | 2026-09-07 (c9) | `flutter analyze` + `flutter test` | Local Windows | Pass — `No issues found!`, 72/72 | 70 existing + 2 played-level tests | `PH-02-G3`, `T-1`, `T-2` |
 | 2026-09-07 (c10) | `flutter build apk --debug`; install; cold launch; ADB tap/screenshot playthrough | SM-S711B, Android 16, serial `RZCX509DE5F` | **Fail at terminal/pause UI** — build/install/launch passed; Home → Loadout → Battle, tool placement, Glow collection, waves, and HUD worked; pause and terminal transitions froze on the last battle frame with no overlay | Cold launch 1.7s. Two screenshots 15s apart and a post-pause screenshot were byte-identical (`SHA-256 01CF05…AAB6`); activity remained foreground/awake; no Flutter exception, fatal exception, or ANR in logcat | `PH-02-G2` passed; `PH-02-G1` blocked; found `AUD-024` |
+| 2026-09-09 (c16) | Device retest on the emulator: cold launch, full level-1 playthrough, Pause/Resume/Victory | `emulator-5554`, Android 17, 2424x1080, x86_64 | **Pass** — PAUSED and VICTORY overlays both mounted and accepted taps; star, coins and unlock persisted | Cold launch 12.3s (debug build). Pause frames at +2s/+10s differed, unlike c11's byte-identical pair. 24 frames over 4 min all distinct. Logcat clean | `AUD-024` closed, `PH-02-G1` passed; found `AUD-028` |
 | 2026-09-09 (c15) | `flutter analyze`; `flutter test`; negative-control runs against reverted production paths | Local Windows, `main` @ `7a48bed` + working tree | Pass — `No issues found!`, **79/79** (72 + 5 `AUD-024` + 2 `AUD-023`) | `AUD-024` fix verified by reverting each `pauseEngine()` call and confirming 0/5; `AUD-023` fix verified against regenerated level data. Owner decisions applied: BGM wired, images unbundled, bundle id `com.rdx.prismdefense.flame`, fonts bundled, ads/IAP withdrawn from v1 | Closed `AUD-002`, `AUD-005`, `AUD-023`, `AUD-024` (pending device), `AUD-025`, `AUD-027`; withdrew `AUD-006` |
 | 2026-09-07 (c14) | Git-drift review of the uncommitted c13 tree; `flutter analyze`; `flutter test`; codegraph re-index | Local Windows, `main` @ `82ed6ab` + dirty tree | Pass on the machine checks — `No issues found!`, 72/72, index 86 files / 1,416 nodes / 3,339 edges | Six c13 documentation claims did not survive review: `PRD-FR-021`/`022` demoted `Tested`→`Built`, four `PH-04` gate boxes reverted, `AUD-018` reopened as code-fixed-but-unverified. Three new findings: `AUD-025` (3.5 MB unreferenced images bundled), `AUD-026` (invalid Xcode boolean, fixed), `AUD-027` (BGM has no call site) | `PH-04` gate corrected to 2/5; `AUD-018` reopened |
 | 2026-09-07 (c11) | Two force-stop/cold-start retries: active-wave Pause, then idle level-1 terminal transition | SM-S711B, Android 16 | **Same failure twice** — Pause produced no overlay and stopped frame changes; idle level 1 reached its terminal transition but produced no Win overlay | Pause screenshots after 2s/12s were byte-identical (`SHA-256 303DE6…90A3F`). Terminal screenshots at 110s/120s were byte-identical (`SHA-256 051B34…01C0A`). Activity stayed top-resumed, phone awake, device connected, logcat clean | Confirms `AUD-024` is deterministic and survives app restart |
@@ -481,10 +482,11 @@ Required checks:
 | `AUD-021` | High | Closed | `design.md` HUD contract; spec §11 | Mount the HUD from `BattleWorld.onLoad`; clear the viewport first in `swapWorld` | Done | Confirmed: 0/4 without the fix, 4/4 with (c8) |
 | `AUD-022` | Medium | Closed | Spec §24 edge case 20 | `swapWorld` reads `camera.world` and removes the outgoing world unconditionally | Done | Confirmed: fails without fix, 70/70 with (c8) |
 | `AUD-023` | High | Closed | `PRD-FR-009`; spec §17 | Levels 2–3 raised to 5 and 6 waves against 3 sweeps; level 1 stays unloseable by design | Done | Confirmed: 2 idle-loss tests fail against the old level data (c15) |
-| `AUD-024` | High | Closed (pending device) | `PRD-FR-010`, `PRD-FR-011`, `PRD-FR-015`; `DS-075` | Removed the three redundant `pauseEngine()` calls; the `state` gate already froze the sim. Lifecycle resume no longer returns early | Done | Negative-controlled: `test/aud024_overlay_mount_test.dart` 0/5 against the old path, 5/5 after (c15). Device retest outstanding |
+| `AUD-024` | High | Closed | `PRD-FR-010`, `PRD-FR-011`, `PRD-FR-015`; `DS-075` | Removed the three redundant `pauseEngine()` calls; the `state` gate already froze the sim. Lifecycle resume no longer returns early | Done | Negative-controlled 0/5 -> 5/5 (c15); **device-confirmed on emulator-5554 (c16)**: PAUSED, RESUME and VICTORY all mounted and accepted taps |
 | `AUD-018` | Low | Open | Spec §23 | Code fixed at c13; still needs a device run that hears a cue after a sound toggle | `PH-04` audio owner | Unchanged at c15: no test host has the audio plugin, so `_ready` is false and the path stays unexercised |
 | `AUD-025` | Medium | Closed | `docs/rules.md` §9; `PRD-FR-022` | Drop `assets/images/` from the `pubspec.yaml` asset manifest (launcher icons are a build-time input); add a bundle-size budget row to `rules.md` §9 | `PH-04`/`PH-06` owner | 3,496,763 bytes bundled into every APK/IPA, referenced by zero Dart code (c14) |
 | `AUD-026` | Medium | Closed | Xcode build settings | `flutter_launcher_icons` wrote the icon name into a boolean setting; restored `= YES` | Done | Fixed at c14; `git diff` on `project.pbxproj` is now empty |
+| `AUD-028` | Medium | Open | Spec §11; `PRD-FR-020` | Reconcile the HUD's viewport coordinate space with the board's world space so `RightPanelComponent` cannot overlap the board on a non-baseline aspect ratio | `PH-02`/`PH-04` owner | Measured on a 2424x1080 viewport: panel left edge at x=1554, column 7 spans 1418-1633, so 38% of the last column is covered (c16) |
 | `AUD-027` | Medium | Closed | `PRD-FR-021`; spec §23 | Call `GameAudio.startBgm()` from a real production site, or delete `startBgm`/`stopBgm` + `bgm.mp3` and strike BGM from `PRD-FR-021` | `PH-04` audio owner | Zero call sites in `lib/`; 321,350 bytes preloaded and never played (c14) |
 | `AUD-016` | Medium | Closed | `architecture.md` §6 vs the tree | `ADR-007` — accept implemented design, drop `TASK-021` | Done | Confirmed: `ADR-007` recorded (c6) |
 | `AUD-015` | Medium | Closed | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Cursor / PH-02 | Closed 2026-09-04 — `integration_test/uj01_test.dart` green on Windows |
@@ -633,7 +635,14 @@ Required checks:
 - **Why `TASK-046` as originally worded would not have worked:** it prescribed mounting the overlay *before* pausing. That fails identically. `add` still only queues, and the very next line stops the tick that would flush it. Ordering was never the problem; the second pause was.
 - **Remediation:** removed `game.pauseEngine()` from `_finishWon`, `_finishLost.onComplete` and `pause()`. Separately, `lib/app.dart`'s `resumed` branch returned early whenever a `BattleWorld` was in `GameState.paused`, leaving the engine stopped with an unmountable overlay after a background/foreground cycle — the same deadlock by another route. It now always calls `resumeEngine()`; the battle stays frozen behind its overlay because of the `state` gate, not the engine. The background branch still pauses the engine, deliberately.
 - **Retest evidence:** `test/aud024_overlay_mount_test.dart`, 5 tests, **negative-controlled**: with any of the three `pauseEngine()` calls restored the file scores 0/5; with the fix, 5/5. The file forbids `resumeEngine()` in its own header, because `ph02_exit_gate_test.dart`'s `_flushLifecycle` helper resumed the engine and is precisely why a green suite never saw this. Full suite 79/79, `flutter analyze` clean.
-- **Outstanding:** no device run yet. `PH-02-G1` stays open until a level is played start to win/lose on SM-S711B.
+- **Device confirmation (c16, 2026-09-09, `emulator-5554`, Android 17, 2424x1080):** cold launch,
+  Home -> Loadout (PICKED 3/3) -> Battle. Tapping Pause during wave 1 mounted the **PAUSED**
+  overlay with RESUME / RESTART / HOME; frames at +2s and +10s differed (`b278dd..` vs `974613..`),
+  where c11 recorded byte-identical frames. RESUME dismissed the overlay and the simulation
+  advanced. Level 1 then ran to **VICTORY — 1 STAR, +30 COINS**; MAP returned to the level grid
+  with the star and 30 coins persisted, and level 2 unlocked. 24 frames sampled over 4 minutes were
+  all distinct — the renderer never stalled. Logcat clean: no `FATAL`, no `E/flutter`, no ANR.
+  **`AUD-024` is closed and `PH-02-G1` passes.**
 
 ### `AUD-023` — levels 1–3 were won by doing nothing
 
@@ -645,6 +654,43 @@ Required checks:
 - **Owner decision (2026-09-09):** level 1 stays unloseable on purpose — a first-time player must not be able to fail their first contact with the game (spec §22 onboarding). Levels 2 and 3 must punish idling.
 - **Remediation:** `tool/gen_levels.py` `build_waves` now overrides the wave total for levels 2 and 3 to 5 and 6 against the unchanged 3 sweeps. All 20 levels regenerated from the same fixed seeds, so only `assets/levels/2.json` and `3.json` changed.
 - **Retest evidence:** two new cases in `test/battle_playthrough_test.dart` play levels 2 and 3 with no input and assert `GameState.lost`. Negative control: revert the `{2: 5, 3: 6}` override, regenerate, and both fail with `GameState.won`.
+
+### `AUD-028` — the right HUD panel covers the board's last tile column
+
+- **Status:** Open.
+- **Severity:** Medium
+- **Detected:** 2026-09-09 (c16), during the `AUD-024` device retest on `emulator-5554`.
+- **Source breached:** Spec §11 (HUD layout); `PRD-FR-020` (landscape).
+- **Affected users/data/components:** `lib/game/components/hud/right_panel_component.dart`,
+  `lib/core/layout.dart`, `lib/game/light_vs_shadow_game.dart` camera setup.
+- **Evidence:** measured by sampling a horizontal scanline through the empty bottom tile row of
+  a battle screenshot at 2424x1080. Tile pitch is 230 device px, giving a camera scale of
+  230 / (76 + 4) = 2.875, which matches `BattleLayout` exactly: the first tile's left edge sits at
+  33 px = 11.5 design units against an `origin.x` of 12. Column 7 therefore spans design 492-568,
+  i.e. **1414-1633 device px**. The panel's left edge measures **1554 px**, so it covers 83 px —
+  **38% of the last column**.
+- **Why the layout model does not predict it:** `BattleLayout` is self-consistent. On the 812x375
+  baseline the board's right edge is 568 and the panel's left edge should be 812 - 220 = 592, a
+  24-unit gap. The board is drawn in **world** space and the panel in **camera.viewport** space,
+  and the two do not agree once the camera letterboxes a non-baseline aspect ratio — the panel is
+  landing ~52 design units left of where the model puts it. `onGameResize`
+  (`light_vs_shadow_game.dart:40-45`) deliberately rebuilds `BattleLayout` from `kBaselineSize`
+  and ignores the real size, so the world is baseline-correct while the viewport is not.
+- **Reproduction:** launch any battle on a display whose aspect ratio is not 812:375 (2.165) —
+  2424x1080 is 2.244 — and compare the right panel's left edge against the seventh column.
+- **Expected:** the panel never overlaps the board at any supported aspect ratio.
+- **Impact:** the last column is where shadows enter. It is partly hidden; whether it is also
+  untappable there was **not** tested and must be, because `TileComponent` hit-testing runs in
+  world space while the panel intercepts taps in viewport space. If taps are swallowed, this is a
+  playability defect, not a cosmetic one — the same shape as `AUD-019`.
+- **Likely cause:** HUD components position themselves against `kBaselineSize.x` while the fitted
+  viewport is wider in design units. Needs a real investigation rather than a nudge — do not
+  "fix" this by shrinking `S.rightPanelW` until it looks right on one device.
+- **Remediation task:** to be raised. Determine the viewport's true coordinate space, then either
+  anchor the panel to the viewport's own right edge or drive `BattleLayout` from the real size.
+- **Owner/due:** `PH-02`/`PH-04` owner.
+- **Retest evidence:** Pending. Retest on at least two aspect ratios, one wider and one narrower
+  than 2.165, and assert tap reachability of a column-7 tile, not just its visibility.
 
 ### `AUD-019` — go_router's routed `Navigator` sat over the `GameWidget` and swallowed every tap; the whole game was untappable
 
