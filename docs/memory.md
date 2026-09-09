@@ -3,7 +3,7 @@ document: Active Project Memory and Handoff
 authority: Short-lived current state, recent work, blockers, bugs, and next action
 status: Active
 owner: "Solo developer (repo owner)"
-last_updated: "2026-09-07 18:20 +05:30"
+last_updated: "2026-09-09 10:05 +05:30"
 ---
 
 # Memory — LIGHT vs SHADOW: Prism Defense
@@ -187,6 +187,52 @@ closed — see `docs/audit.md` for retest evidence.
 
 Cycle-by-cycle history lives in `STATE.md` → `LOG`. This section is for
 narrative handoff needing more than one line.
+
+### 2026-09-09 10:05 +05:30 — c15: owner decisions applied; AUD-023 and AUD-024 closed
+
+Seven owner decisions came back in one pass; all applied and verified. Suite 72 -> 79,
+`flutter analyze` clean.
+
+**`AUD-024` — the battle-freeze, closed in code.** Root cause was not overlay ordering.
+`_showOverlay` calls `camera.viewport.add`, which only queues a child; the queue is
+flushed by `updateTree`, which a paused engine never runs. All three transitions called
+`pauseEngine()` first. Those calls were redundant — `BattleWorld.update` already
+early-returns on `state != playing`, and each site assigns `state` immediately before.
+So `TASK-046` as originally written (mount before pausing) would have failed identically.
+Removed all three. Also found the same deadlock by a second route: `app.dart`'s `resumed`
+branch returned early for a paused `BattleWorld`, leaving the engine stopped with an
+unmountable Pause overlay after any background/foreground cycle — the player could not
+get out of the battle at all. It now always resumes the engine; the `state` gate is what
+keeps the sim frozen. Backgrounding still pauses the engine, deliberately.
+
+Verification is negative-controlled: `test/aud024_overlay_mount_test.dart` scores **0/5**
+with any one `pauseEngine()` call restored and 5/5 with the fix. The file bans
+`resumeEngine()` in its own header — `ph02_exit_gate_test.dart`'s `_flushLifecycle`
+helper resumed the engine on the test's behalf, which is exactly why a green suite never
+saw this defect. **Device retest is still outstanding; `PH-02-G1` stays open.**
+
+**`AUD-023` — early levels, closed.** Owner call: level 1 stays unloseable (guaranteed
+first success, spec §22 onboarding), levels 2-3 must punish idling. `tool/gen_levels.py`
+now forces 5 and 6 waves for those two against the unchanged 3 lane sweeps. Same fixed
+seeds, so regenerating all 20 levels changed only `2.json` and `3.json`. Two new
+playthrough tests idle through both and assert `GameState.lost`.
+
+**Other decisions applied.** BGM wired — `startBgm()` once from `main.dart` plus
+lifecycle stop/restart, one app-wide loop rather than per-world so navigation does not
+restart the track (`AUD-027` closed). `assets/images/` dropped from the runtime manifest,
+3,496,763 bytes off the bundle, nothing loaded it (`AUD-025` closed). Bundle id and label
+are now `com.rdx.prismdefense.flame` / "Prism Defense" on both platforms, Kotlin package
+and directory moved to match (`AUD-005`, `ARCH-Q-003` closed). Orbitron, Inter and
+JetBrains Mono bundled as variable TTFs with their OFL text — the `F.bundled` seam was
+already built, so this was the one-line flip its own comment promised (`AUD-002`,
+`ARCH-Q-001` closed). `PRD-FR-016/017/018` withdrawn from v1: the game ships free and
+unmonetised, `PH-05` rescoped to multi-viewport plus profiled 60fps, `AUD-006` withdrawn.
+
+Net: 1,102,360 bytes of fonts in, 3,496,763 bytes of images out.
+
+The one thing still unproven by any test remains audio playback. No test host has the
+audio plugin, so `_ready` is false and every gated body is unreachable — `AUD-018` stays
+open on purpose. It closes on a device, not in CI.
 
 ### 2026-09-07 18:20 +05:30 — c14: git-drift review; six c13 doc claims corrected
 

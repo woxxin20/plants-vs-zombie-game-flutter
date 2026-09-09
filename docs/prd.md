@@ -642,6 +642,14 @@ release requirement and give every requirement testable acceptance criteria.
 
 ### `PRD-FR-016` — Ads: banner and interstitial
 
+> **WITHDRAWN FROM v1 — owner decision, 2026-09-09.** v1 ships as a free,
+> unmonetised game: gameplay only. This requirement is retained in full for a
+> v1.1 monetisation pass and is not a release blocker. `google_mobile_ads` and
+> `in_app_purchase` stay commented out in `pubspec.yaml` (6.0.0 breaks Gradle
+> 9.3.1); restore `lib/core/monetization.dart` from git when the pass begins.
+> Priority reads `Won't (v1)`, not `Must` — the earlier `Must`/Deferred
+> contradiction is what blocked `PH-05` from closing.
+
 - **Statement:** The product must show a banner ad on Home/Map only (never
   during Battle) and an interstitial after every 3rd level win, both fully
   suppressed once Remove Ads is owned.
@@ -665,6 +673,14 @@ release requirement and give every requirement testable acceptance criteria.
   kind shows during Battle itself.
 
 ### `PRD-FR-017` — Rewarded Glow boost, capped once per battle
+
+> **WITHDRAWN FROM v1 — owner decision, 2026-09-09.** v1 ships as a free,
+> unmonetised game: gameplay only. This requirement is retained in full for a
+> v1.1 monetisation pass and is not a release blocker. `google_mobile_ads` and
+> `in_app_purchase` stay commented out in `pubspec.yaml` (6.0.0 breaks Gradle
+> 9.3.1); restore `lib/core/monetization.dart` from git when the pass begins.
+> Priority reads `Won't (v1)`, not `Must` — the earlier `Must`/Deferred
+> contradiction is what blocked `PH-05` from closing.
 
 - **Statement:** The product must offer exactly one rewarded-ad-gated "+50
   Glow" boost per battle via the RightPanel HUD button, disabled once used
@@ -693,6 +709,14 @@ release requirement and give every requirement testable acceptance criteria.
   mid-battle economy aid, not a continue.
 
 ### `PRD-FR-018` — IAP Remove Ads
+
+> **WITHDRAWN FROM v1 — owner decision, 2026-09-09.** v1 ships as a free,
+> unmonetised game: gameplay only. This requirement is retained in full for a
+> v1.1 monetisation pass and is not a release blocker. `google_mobile_ads` and
+> `in_app_purchase` stay commented out in `pubspec.yaml` (6.0.0 breaks Gradle
+> 9.3.1); restore `lib/core/monetization.dart` from git when the pass begins.
+> Priority reads `Won't (v1)`, not `Must` — the earlier `Must`/Deferred
+> contradiction is what blocked `PH-05` from closing.
 
 - **Statement:** The product must offer a single non-consumable "Remove
   Ads" purchase ($2.99) that permanently disables banner and interstitial
@@ -780,9 +804,10 @@ release requirement and give every requirement testable acceptance criteria.
   `explosion.mp3`, `win.mp3`, `lose.mp3`, `sweep.mp3`) matching spec §12.3 durations
   under 500KB total budget, preloaded at boot via `FlameAudio.audioCache.loadAll`,
   with volume gating that preserves loaded assets across sound toggles (`AUD-018`
-  fix). An ambient loop (`bgm.mp3`) is bundled and `GameAudio.startBgm()` exists,
-  but **no production code calls it**, so music never plays — tracked as `AUD-027`.
-  BGM is not delivered by this requirement until that call site exists.
+  fix), plus a seamless loopable ambient theme (`bgm.mp3`) started once at boot
+  from `lib/main.dart` and stopped/restarted by the app lifecycle handler
+  (`AUD-027`, closed 2026-09-09). One app-wide loop rather than per-world, so
+  navigating between screens does not restart the track.
 - **User/value:** Primary player; sound feedback communicates placement validity,
   beam hits, explosions, wave clears, and game outcomes with visceral satisfaction.
 - **Priority:** Must
@@ -822,9 +847,13 @@ release requirement and give every requirement testable acceptance criteria.
   - Store banner (`assets/images/banner.jpg`) and tactical diorama art
     (`assets/images/battlefield.jpg`) exist and are reviewed by the owner against the
     dark-lab / neon-optics pillars. This is a human sign-off, not an automated check.
-  - **Not met:** `assets/images/` is declared in `pubspec.yaml` and bundles 3,496,763
-    bytes into every APK/IPA while **no Dart code references any of it**. Launcher
-    icons are a build-time input, not a runtime asset. Tracked as `AUD-025`.
+  - `assets/images/` is deliberately **not** in the runtime asset manifest: nothing
+    in `lib/` loads it, `icon.png` is a build-time input for `flutter_launcher_icons`,
+    and banner/battlefield are store art. Bundling them cost 3,496,763 bytes of dead
+    payload (`AUD-025`, closed 2026-09-09).
+  - Given the app is installed, the home screen reads **Prism Defense** under the
+    prism icon; bundle id is `com.rdx.prismdefense.flame` on both platforms
+    (`AUD-005`, closed 2026-09-09).
 - **Data involved:** `pubspec.yaml` `flutter_launcher_icons` configuration, icon mipmaps.
 - **Dependencies:** `PRD-FR-020`
 - **Excluded behavior:** In-game canvas rendering continues to be hand-drawn vector code;
@@ -854,9 +883,9 @@ Status vocabulary (defined in [`prd-story.md`](./prd-story.md) §8):
 | `PRD-FR-013` | Level unlock and progression persistence | Must | `UJ-02` | MVP | Tested |
 | `PRD-FR-014` | Loadout: scout preview and 6-of-8 tool pick | Must | `UJ-01` | MVP | Tested |
 | `PRD-FR-015` | App lifecycle: pause on background, rotation, and back | Must | `UJ-02` | MVP | Tested |
-| `PRD-FR-016` | Ads: banner and interstitial | Must | `UJ-01` | MVP | Deferred |
-| `PRD-FR-017` | Rewarded Glow boost, capped once per battle | Must | `UJ-03` | MVP | Deferred |
-| `PRD-FR-018` | IAP Remove Ads | Must | `UJ-01` | MVP | Deferred |
+| `PRD-FR-016` | Ads: banner and interstitial | Won't (v1) | `UJ-01` | v1.1 | Withdrawn |
+| `PRD-FR-017` | Rewarded Glow boost, capped once per battle | Won't (v1) | `UJ-03` | v1.1 | Withdrawn |
+| `PRD-FR-018` | IAP Remove Ads | Won't (v1) | `UJ-01` | v1.1 | Withdrawn |
 | `PRD-FR-019` | Settings: sound, haptics, reset progress | Must | `UJ-02` | MVP | Tested |
 | `PRD-FR-020` | Landscape orientation lock | Must | `UJ-01` | MVP | Verified |
 | `PRD-FR-021` | Interactive audio and music assets | Must | `UJ-01`, `UJ-02` | MVP | Built |

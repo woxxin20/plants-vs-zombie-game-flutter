@@ -179,6 +179,7 @@ section becomes meaningful starting at `PH-00`'s exit gate (empty-scene
 | 2026-09-07 (c9) | Idle probe, all 20 levels, no input | Local Windows | Levels 1–3 **won**, 4–20 lost | Found `AUD-023`. Throwaway harness, not committed | `AUD-023` |
 | 2026-09-07 (c9) | `flutter analyze` + `flutter test` | Local Windows | Pass — `No issues found!`, 72/72 | 70 existing + 2 played-level tests | `PH-02-G3`, `T-1`, `T-2` |
 | 2026-09-07 (c10) | `flutter build apk --debug`; install; cold launch; ADB tap/screenshot playthrough | SM-S711B, Android 16, serial `RZCX509DE5F` | **Fail at terminal/pause UI** — build/install/launch passed; Home → Loadout → Battle, tool placement, Glow collection, waves, and HUD worked; pause and terminal transitions froze on the last battle frame with no overlay | Cold launch 1.7s. Two screenshots 15s apart and a post-pause screenshot were byte-identical (`SHA-256 01CF05…AAB6`); activity remained foreground/awake; no Flutter exception, fatal exception, or ANR in logcat | `PH-02-G2` passed; `PH-02-G1` blocked; found `AUD-024` |
+| 2026-09-09 (c15) | `flutter analyze`; `flutter test`; negative-control runs against reverted production paths | Local Windows, `main` @ `7a48bed` + working tree | Pass — `No issues found!`, **79/79** (72 + 5 `AUD-024` + 2 `AUD-023`) | `AUD-024` fix verified by reverting each `pauseEngine()` call and confirming 0/5; `AUD-023` fix verified against regenerated level data. Owner decisions applied: BGM wired, images unbundled, bundle id `com.rdx.prismdefense.flame`, fonts bundled, ads/IAP withdrawn from v1 | Closed `AUD-002`, `AUD-005`, `AUD-023`, `AUD-024` (pending device), `AUD-025`, `AUD-027`; withdrew `AUD-006` |
 | 2026-09-07 (c14) | Git-drift review of the uncommitted c13 tree; `flutter analyze`; `flutter test`; codegraph re-index | Local Windows, `main` @ `82ed6ab` + dirty tree | Pass on the machine checks — `No issues found!`, 72/72, index 86 files / 1,416 nodes / 3,339 edges | Six c13 documentation claims did not survive review: `PRD-FR-021`/`022` demoted `Tested`→`Built`, four `PH-04` gate boxes reverted, `AUD-018` reopened as code-fixed-but-unverified. Three new findings: `AUD-025` (3.5 MB unreferenced images bundled), `AUD-026` (invalid Xcode boolean, fixed), `AUD-027` (BGM has no call site) | `PH-04` gate corrected to 2/5; `AUD-018` reopened |
 | 2026-09-07 (c11) | Two force-stop/cold-start retries: active-wave Pause, then idle level-1 terminal transition | SM-S711B, Android 16 | **Same failure twice** — Pause produced no overlay and stopped frame changes; idle level 1 reached its terminal transition but produced no Win overlay | Pause screenshots after 2s/12s were byte-identical (`SHA-256 303DE6…90A3F`). Terminal screenshots at 110s/120s were byte-identical (`SHA-256 051B34…01C0A`). Activity stayed top-resumed, phone awake, device connected, logcat clean | Confirms `AUD-024` is deterministic and survives app restart |
 | 2026-09-04 (c6) | `flutter test` | Local Windows, `HEAD` `9cc0c49` | Pass — 42/42 (+7 `PH-01` gate tests) | Re-run by the lead; diff verified test-only (1 file, +285 lines, zero production change) | `PH-01` gate 6/7, gate 3 partial |
@@ -461,11 +462,11 @@ Required checks:
 | Finding | Severity | Status | Source | Remediation | Owner/due | Retest |
 | --- | --- | --- | --- | --- | --- | --- |
 | `AUD-001` | Low | Accepted risk | Spec §21 | None (formalize `ADR-004` later) | Solo dev / architecture.md authoring | N/A |
-| `AUD-002` | Medium | Open | Spec §10.2 | `TASK-011` | Solo dev / before `PH-00` exit | Pending |
+| `AUD-002` | Medium | Closed | Spec §10.2 | Bundled Orbitron / Inter / JetBrains Mono as variable TTFs under `assets/fonts/`, SIL OFL 1.1 with licence text alongside; flipped `F.bundled` | Done | Confirmed c15: `pubspec.yaml` declares all three, `flutter analyze` clean, 79/79 |
 | `AUD-003` | Low | Accepted risk | Spec §21 | None (formalize ADRs later) | Solo dev / architecture.md authoring | N/A |
 | `AUD-004` | Info | Closed | Spec §21 | None | N/A | Confirmed correct |
-| `AUD-005` | Medium | Open | Project directive | `TASK-012` | Solo dev / before `PH-00` exit | Pending |
-| `AUD-006` | Low | Open | Spec §20 | `TASK-040`, `TASK-041` | Solo dev / before `PH-05` exit | Pending |
+| `AUD-005` | Medium | Closed | Project directive | Bundle id and label set to `com.rdx.prismdefense.flame` / "Prism Defense" on both platforms; Kotlin package and directory moved to match | Done | Confirmed c15: no `plants_vs_zombie` remains in `android/`, `ios/` or `pubspec.yaml` |
+| `AUD-006` | Low | Withdrawn | Spec §20 | N/A — `PRD-FR-016/017/018` withdrawn from v1 by owner decision 2026-09-09; v1 ships free and unmonetised | N/A | Reopen with the v1.1 monetisation pass |
 | `AUD-007` | Medium | Open | `docs/GOVERNANCE.md` | `TASK-009` onward | Solo dev / ongoing | Pending |
 | `AUD-008` | Medium | Closed | This audit's brief vs reality | Reconcile plan + fix `Curves` import | Solo dev | Confirmed fixed (c2) |
 | `AUD-009` | High | Closed | Engineering practice | Commit working tree checkpoint | Solo dev | Confirmed committed (c1/c2) |
@@ -479,12 +480,12 @@ Required checks:
 | `AUD-020` | Critical | Closed | `PRD-FR-014` vs shipped level 1 | `ADR-008` — cap tray at what the level offers | Done | Confirmed on device, 66/66 (c7) |
 | `AUD-021` | High | Closed | `design.md` HUD contract; spec §11 | Mount the HUD from `BattleWorld.onLoad`; clear the viewport first in `swapWorld` | Done | Confirmed: 0/4 without the fix, 4/4 with (c8) |
 | `AUD-022` | Medium | Closed | Spec §24 edge case 20 | `swapWorld` reads `camera.world` and removes the outgoing world unconditionally | Done | Confirmed: fails without fix, 70/70 with (c8) |
-| `AUD-023` | High | Open | `PRD-FR-009`; spec §17 | Retune `tool/gen_levels.py` so levels 1–3 spawn more waves than there are lane sweeps, then regenerate | Owner (balance) | Probe: levels 1–3 idle-win, 4–20 idle-lose (c9) |
-| `AUD-024` | High | Open | `PRD-FR-010`, `PRD-FR-011`, `PRD-FR-015`; `DS-075` | Mount Pause/Win/Lose overlays before pausing the Flame engine; add a regression that does not resume the engine to flush lifecycle queues | `TASK-046` | Device reproduction on SM-S711B (c10) |
-| `AUD-018` | Low | Open | Spec §23 | Code fixed (`clearAll()` dropped, preload wired); still needs one negative-controlled test or device run that observes a cue play | `PH-04` audio owner | Code correct at c13; retest evidence rejected at c14 — the cited test only stats files on disk |
-| `AUD-025` | Medium | Open | `docs/rules.md` §9; `PRD-FR-022` | Drop `assets/images/` from the `pubspec.yaml` asset manifest (launcher icons are a build-time input); add a bundle-size budget row to `rules.md` §9 | `PH-04`/`PH-06` owner | 3,496,763 bytes bundled into every APK/IPA, referenced by zero Dart code (c14) |
+| `AUD-023` | High | Closed | `PRD-FR-009`; spec §17 | Levels 2–3 raised to 5 and 6 waves against 3 sweeps; level 1 stays unloseable by design | Done | Confirmed: 2 idle-loss tests fail against the old level data (c15) |
+| `AUD-024` | High | Closed (pending device) | `PRD-FR-010`, `PRD-FR-011`, `PRD-FR-015`; `DS-075` | Removed the three redundant `pauseEngine()` calls; the `state` gate already froze the sim. Lifecycle resume no longer returns early | Done | Negative-controlled: `test/aud024_overlay_mount_test.dart` 0/5 against the old path, 5/5 after (c15). Device retest outstanding |
+| `AUD-018` | Low | Open | Spec §23 | Code fixed at c13; still needs a device run that hears a cue after a sound toggle | `PH-04` audio owner | Unchanged at c15: no test host has the audio plugin, so `_ready` is false and the path stays unexercised |
+| `AUD-025` | Medium | Closed | `docs/rules.md` §9; `PRD-FR-022` | Drop `assets/images/` from the `pubspec.yaml` asset manifest (launcher icons are a build-time input); add a bundle-size budget row to `rules.md` §9 | `PH-04`/`PH-06` owner | 3,496,763 bytes bundled into every APK/IPA, referenced by zero Dart code (c14) |
 | `AUD-026` | Medium | Closed | Xcode build settings | `flutter_launcher_icons` wrote the icon name into a boolean setting; restored `= YES` | Done | Fixed at c14; `git diff` on `project.pbxproj` is now empty |
-| `AUD-027` | Medium | Open | `PRD-FR-021`; spec §23 | Call `GameAudio.startBgm()` from a real production site, or delete `startBgm`/`stopBgm` + `bgm.mp3` and strike BGM from `PRD-FR-021` | `PH-04` audio owner | Zero call sites in `lib/`; 321,350 bytes preloaded and never played (c14) |
+| `AUD-027` | Medium | Closed | `PRD-FR-021`; spec §23 | Call `GameAudio.startBgm()` from a real production site, or delete `startBgm`/`stopBgm` + `bgm.mp3` and strike BGM from `PRD-FR-021` | `PH-04` audio owner | Zero call sites in `lib/`; 321,350 bytes preloaded and never played (c14) |
 | `AUD-016` | Medium | Closed | `architecture.md` §6 vs the tree | `ADR-007` — accept implemented design, drop `TASK-021` | Done | Confirmed: `ADR-007` recorded (c6) |
 | `AUD-015` | Medium | Closed | `docs/rules.md` §8; `AGENTS.md` §6 | Add `integration_test/` covering `UJ-01` + save-restart, as part of the `PH-02` gate | Cursor / PH-02 | Closed 2026-09-04 — `integration_test/uj01_test.dart` green on Windows |
 
@@ -572,7 +573,7 @@ Required checks:
 
 ### `AUD-025` — 3.5 MB of unreferenced images are bundled into every build
 
-- **Status:** Open.
+- **Status:** Closed — fixed 2026-09-09 (c15). `- assets/images/` removed from `pubspec.yaml`; the files stay on disk as store/branding source and `flutter_launcher_icons` still reads `icon.png` at build time. Nothing loaded them, so nothing broke.
 - **Severity:** Medium
 - **Detected:** 2026-09-07 (c14), git-drift review of the uncommitted c13 tree.
 - **Source breached:** `docs/rules.md` §9 (performance budgets); `PRD-FR-022`, which itself states "in-game canvas rendering continues to be hand-drawn vector code".
@@ -605,7 +606,7 @@ Required checks:
 
 ### `AUD-027` — the bundled BGM track has no production call site and can never play
 
-- **Status:** Open.
+- **Status:** Closed — fixed 2026-09-09 (c15). Owner chose to wire it rather than cut it. `GameAudio.startBgm()` is called once from `lib/main.dart` after `init()` — one app-wide loop, not per-world, so navigation does not restart the track — and the lifecycle handler in `lib/app.dart` stops it on background and restarts it on resume. Sound-off already zeroes the BGM bus through `setSoundEnabled`. Still unheard by any test (see `AUD-018`); needs the same device run.
 - **Severity:** Medium
 - **Detected:** 2026-09-07 (c14), git-drift review.
 - **Source breached:** `PRD-FR-021`; spec §23.
@@ -619,6 +620,31 @@ Required checks:
 - **Owner/due:** `PH-04` audio owner.
 - **Workaround:** N/A.
 - **Retest evidence:** Pending.
+
+### `AUD-024` — Pause / Win / Lose froze the battle before their overlay mounted
+
+- **Status:** Closed in code 2026-09-09 (c15). Device retest outstanding.
+- **Severity:** High
+- **Detected:** 2026-09-07 (c10) on SM-S711B; confirmed deterministic across two cold starts (c11).
+- **Source breached:** `PRD-FR-010`, `PRD-FR-011`, `PRD-FR-015`; `DS-075`.
+- **Affected users/data/components:** every player, every battle. `lib/game/worlds/battle_world.dart` `_finishWon`, `_finishLost`, `pause`; `lib/app.dart` lifecycle handler.
+- **Evidence:** `_showOverlay` calls `camera.viewport.add`, which only **queues** a child; the queue is flushed by `updateTree`, which a paused engine never runs. All three transitions called `game.pauseEngine()` first, so the dialog was queued into an engine that had stopped ticking. On device the last battle frame stayed on screen with no dialog and no input; two screenshots 15 s apart were byte-identical, the activity stayed top-resumed, and logcat carried no exception or ANR.
+- **Root cause:** the `pauseEngine()` calls were redundant. `BattleWorld.update` already early-returns on `state != GameState.playing`, and every one of those call sites assigns `state` immediately beforehand. The engine pause froze nothing extra about the simulation — it only stopped the renderer.
+- **Why `TASK-046` as originally worded would not have worked:** it prescribed mounting the overlay *before* pausing. That fails identically. `add` still only queues, and the very next line stops the tick that would flush it. Ordering was never the problem; the second pause was.
+- **Remediation:** removed `game.pauseEngine()` from `_finishWon`, `_finishLost.onComplete` and `pause()`. Separately, `lib/app.dart`'s `resumed` branch returned early whenever a `BattleWorld` was in `GameState.paused`, leaving the engine stopped with an unmountable overlay after a background/foreground cycle — the same deadlock by another route. It now always calls `resumeEngine()`; the battle stays frozen behind its overlay because of the `state` gate, not the engine. The background branch still pauses the engine, deliberately.
+- **Retest evidence:** `test/aud024_overlay_mount_test.dart`, 5 tests, **negative-controlled**: with any of the three `pauseEngine()` calls restored the file scores 0/5; with the fix, 5/5. The file forbids `resumeEngine()` in its own header, because `ph02_exit_gate_test.dart`'s `_flushLifecycle` helper resumed the engine and is precisely why a green suite never saw this. Full suite 79/79, `flutter analyze` clean.
+- **Outstanding:** no device run yet. `PH-02-G1` stays open until a level is played start to win/lose on SM-S711B.
+
+### `AUD-023` — levels 1–3 were won by doing nothing
+
+- **Status:** Closed — fixed 2026-09-09 (c15).
+- **Severity:** High
+- **Detected:** 2026-09-07 (c9), by the first tests that actually played a level.
+- **Source breached:** `PRD-FR-009`; spec §17.
+- **Evidence:** levels 1–3 each shipped 3 waves, and the player starts with one free sweep per lane. A sweep clears an entire lane regardless of shadow positions, so three sweeps absorbed three waves and an idle player won. No early level exercised the core loop, and `battle_playthrough_test` had to reach for level 4 to prove a fail state existed at all.
+- **Owner decision (2026-09-09):** level 1 stays unloseable on purpose — a first-time player must not be able to fail their first contact with the game (spec §22 onboarding). Levels 2 and 3 must punish idling.
+- **Remediation:** `tool/gen_levels.py` `build_waves` now overrides the wave total for levels 2 and 3 to 5 and 6 against the unchanged 3 sweeps. All 20 levels regenerated from the same fixed seeds, so only `assets/levels/2.json` and `3.json` changed.
+- **Retest evidence:** two new cases in `test/battle_playthrough_test.dart` play levels 2 and 3 with no input and assert `GameState.lost`. Negative control: revert the `{2: 5, 3: 6}` override, regenerate, and both fail with `GameState.won`.
 
 ### `AUD-019` — go_router's routed `Navigator` sat over the `GameWidget` and swallowed every tap; the whole game was untappable
 
