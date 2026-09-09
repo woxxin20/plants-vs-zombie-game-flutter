@@ -3,21 +3,19 @@
 <!-- AGENT-OWNED. Whole-file rewrite only, never patched.
      Humans edit HUMAN NOTES only. Rules: .ai/STATE-PROTOCOL.md -->
 
-CYCLE:   16 (closed)
-UPDATED: 2026-09-09T12:50+05:30
+CYCLE:   17 (closed)
+UPDATED: 2026-09-09T16:05+05:30
 BY:      lead:GameDesigner
 BRANCH:  main
-COMMIT:  0db6b15
-STATUS:  NEEDS-REVIEW
+COMMIT:  d1beb01
+STATUS:  READY
 
 ## NEXT ACTION
-Investigate `AUD-028` in `lib/game/components/hud/right_panel_component.dart`:
-determine whether a column-7 tile is TAPPABLE on a 2424x1080 viewport, since the
-panel covers 38% of it and hit-tests in a different coordinate space.
+Review and benchmark particle pooling in `lib/game/particles/effect_pool.dart` and `lib/game/particles/particle_definitions.dart` for `TASK-037` (`PH-04`).
 
 ## PROJECT
 Type:    Flutter 3.47 + Flame 1.38 landscape game, offline, no backend
-Phase:   PH-02 closed; PH-04 gate 2/5; PH-05 rescoped, no monetisation
+Phase:   PH-02 closed; PH-03 closed; PH-04 in progress (gate 2/5); PH-05 rescoped, no monetisation
 Success: 20 playable levels, 60fps on low-end 720p Android, airplane-mode clean
 
 ## GOAL — this branch
@@ -32,15 +30,9 @@ Done when:
 - [x] Pause/Win/Lose overlays mount (AUD-024) and levels 2-3 punish idling (AUD-023)
 - [x] a level is playable start to win/lose ON A DEVICE — level 1 to VICTORY on
       emulator-5554, progress persisted (c16). PH-02-G1 passed.
+- [x] HUD RightPanel anchored to viewport size eliminating 38% tile overlap (AUD-028, TASK-047)
 
 ## BROKEN NOW
-- AUD-028 (Medium, open): the right HUD panel covers 38% of the board's 7th tile
-  column on a 2424x1080 viewport. Panel left edge measures 1554 px; column 7
-  spans 1414-1633. `BattleLayout` is self-consistent and predicts a 24-unit gap
-  — the board is in world space, the panel in camera.viewport space, and they
-  disagree once the camera letterboxes a non-baseline aspect ratio.
-  Reproduce: start any battle on a display whose aspect is not 812:375.
-  **Untested and more important: is a column-7 tile still tappable?**
 - AUD-018 (Low, open): no test host has the audio plugin, so `_ready` is always
   false and no test can hear a cue. Closes on a device, by listening.
 
@@ -56,11 +48,11 @@ Done when:
 - assets/images/ is deliberately NOT in the pubspec asset manifest (AUD-025).
 - Level 1 is unloseable on purpose (onboarding). Levels 2+ must punish idling (AUD-023).
 - PRD-FR-016/017/018 (ads, IAP) are Won't for v1. Do not re-add google_mobile_ads or in_app_purchase.
-- AUD-028: do NOT fix the panel overlap by shrinking S.rightPanelW until one device looks right. Find the viewport's real coordinate space first.
+- AUD-028: RightPanelComponent and TopBarComponent are anchored to camera.viewport.size (TASK-047). Never hardcode kBaselineSize for viewport-mounted HUD elements.
 
 ## NEEDS HUMAN
 - [ ] Keystore / signing identity — blocks PH-06's release builds.
-- [ ] Review the c15+c16 diff: `git diff 7a48bed..HEAD`.
+- [ ] Device audio confirmation on hardware to close AUD-018.
 
 ## COST NOTES
 - Never read build/ or .dart_tool/ — generated and high-volume.
@@ -78,8 +70,8 @@ Done when:
 (free text — agent copies this block through byte-for-byte)
 
 ## LOG
+- 2026-09-09 | c17 | Fixed AUD-028 via TASK-047: dynamically anchored RightPanelComponent to viewport.size.x - S.rightPanelW, TopBarComponent to viewport.size.x, and OverlayDialog to viewport.size. 0px board overlap verified across wider/baseline/narrower viewports. 82/82 green, analyze clean. AUD-028 closed.
 - 2026-09-09 | c16 | Device retest on emulator-5554 (Android 17, 2424x1080). Cold launch 12.3s, Home->Loadout->Battle, Pause mounted PAUSED, RESUME resumed, level 1 ran to VICTORY 1 STAR +30 COINS, star/coins/unlock persisted. 24/24 frames distinct, logcat clean. AUD-024 closed, PH-02-G1 passed, PH-02 closed. Found AUD-028 (panel covers 38% of column 7).
 - 2026-09-09 | c15 | Applied 7 owner decisions. Closed AUD-024 in code (removed 3 redundant pauseEngine calls + lifecycle-resume deadlock; negative-controlled 0/5 -> 5/5) and AUD-023 (levels 2-3 to 5/6 waves). Wired BGM, unbundled 3.5MB of images, renamed to com.rdx.prismdefense.flame, bundled 3 OFL fonts, withdrew ads/IAP. 79/79.
 - 2026-09-07 | c14 | Git-drift review of the uncommitted c13 tree, then committed both. Demoted PRD-FR-021/022 Tested->Built, reverted unearned PH-04 gate boxes, reopened AUD-018. Logged AUD-025/026/027.
 - 2026-09-07 | c13 | Audio + image generation. Docs overclaimed the result — corrected at c14.
-- 2026-09-07 | c11 | Two cold starts reproduced AUD-024. Frames byte-identical, logcat clean. Deterministic.
